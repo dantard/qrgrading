@@ -1,5 +1,3 @@
-import os
-import sys
 import time
 from multiprocessing import Manager, Pool, Process
 
@@ -15,19 +13,21 @@ class PageProcessor(Process):
 
     def __init__(self, filename, index, generated, codes_detected, **kwargs):
         super().__init__()
-        self.resize = kwargs.get("resize", 1.0)
         self.filename = filename
         self.index = index
-        self.codes_detected = codes_detected
-        self.detected = detected
+        self.generated = generated
+        self.detected = codes_detected
+
         self.dpi = kwargs.get("dpi", 400)
-        self.ppm = self.dpi / 25.4
         self.thresholds = kwargs.get("thresholds", [50, 55, 60, 65, 70, 75, 80])
         self.matrix = pymupdf.Matrix(self.dpi / 72, self.dpi / 72)
         self.show_patches = kwargs.get("show_patches", False)
-        self.generated = generated
+        self.resize = kwargs.get("resize", 1.0)
+
+        self.ppm = self.dpi / 25.4
 
     def run(self):
+
         # Render the image
         doc = pymupdf.open(self.filename)
         page = doc[self.index]
@@ -36,16 +36,15 @@ class PageProcessor(Process):
 
         # Find page, orientation and rotate page
         rotation = None
-
         codes = PageCodeSet()
 
         for th in self.thresholds:
-            h, w = image.shape[0], image.shape[1]
+            ph, pw = image.shape[0], image.shape[1]
 
             nw = image[0:500, 0:500]
-            ne = image[0:500, w - 500:w]
-            sw = image[h - 500:h, 0:500]
-            se = image[h - 500:h, w - 500:w]
+            ne = image[0:500, pw - 500:pw]
+            sw = image[ph - 500:ph, 0:500]
+            se = image[ph - 500:ph, pw - 500:pw]
 
             nw = threshold(nw, th)
             ne = threshold(ne, th)
@@ -56,7 +55,6 @@ class PageProcessor(Process):
             cv2.imwrite("sw.png", sw)
             cv2.imwrite("ne.png", ne)
             cv2.imwrite("se.png", se)
-
 
             for text, cx, cy, cw, ch in get_codes(ne):
                 if text.startswith("P"):
@@ -89,7 +87,7 @@ class PageProcessor(Process):
         if rotation is not None:
             image = cv2.rotate(image, rotation)
 
-        # Get the page if we got it
+        # Get the page number if we got it
         page = codes.get_page()
         exam = codes.get_exam_id()
 
@@ -97,67 +95,73 @@ class PageProcessor(Process):
         # page may have been rotated
         codes.clear()
 
+        # Process the page and extract the codes
         for th in self.thresholds:
             th_image = threshold(image, th)
             patches = get_patches(th_image, self.ppm, 8)
 
-            for x, y, w, h in patches:
-                patch = image[y:y + h, x:x + w]
+            for px, py, pw, ph in patches:
+                patch = image[py:py + ph, px:px + pw]
 
                 if self.show_patches:
-                    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 1)
+                    cv2.rectangle(image, (px, py), (px + pw, py + ph), (0, 0, 255), 1)
 
                 for text, cx, cy, cw, ch in get_codes(patch):
-                    codes.append(Code(text, x + cx, y + cy, cw, ch, page))
+                    codes.append(Code(text, px + cx, py + cy, cw, ch, page))
 
+
+        # Compute delta for annotations
         generated_page_codeset = PageCodeSet(self.generated.filter(page=page, exam=exam))
         if codes.get_p() is not None and codes.get_q() is not None:
             p11 = codes.get_p().get_pos()
             p12 = codes.get_q().get_pos()
             p21 = generated_page_codeset.get_p().get_pos()
             p22 = generated_page_codeset.get_q().get_pos()
-            _, _, T = compute_similarity_transform(p11, p12, p21, p22)
+            _, _, delta = compute_similarity_transform(p11, p12, p21, p22)
         elif codes.get_p() is not None:
             x1, y1 = codes.get_p().get_pos()
             x2, y2 = generated_page_codeset.get_p().get_pos()
-            T = (x2 - x1, y2 - y1)
+            delta = (x2 - x1, y2 - y1)
         elif codes.get_q() is not None:
             x1, y1 = codes.get_q().get_pos()
             x2, y2 = generated_page_codeset.get_q().get_pos()
-            T = (x2 - x1, y2 - y1)
+            delta = (x2 - x1, y2 - y1)
         else:
-            T = (0, 0)
-
-
-        for code in codes.codes:
-            x, y = code.get_pos()
-            w, h = 120, 120
-            print(x, y, w, h)
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 5)
-
-        for code in generated_page_codeset.codes:
-            x, y = code.get_pos()
-            w, h = 120, 120
-            x = x- int(T[0])
-            y = y- int(T[1])
-
-            cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 5)
+            delta = (0, 0)
 
         if self.resize != 1.0:
             image = cv2.resize(image, (int(image.shape[1] * self.resize), int(image.shape[0] * self.resize)),
-                              interpolation=cv2.INTER_AREA)
+                               interpolation=cv2.INTER_AREA)
 
         if codes.get_page() is not None:
             cv2.imwrite("page-{}-{}-{:03d}.jpg".format(codes.get_date(), codes.get_exam_id(), codes.get_page()), image)
         elif codes.get_exam_id():
-            cv2.imwrite("unknown_page-{}-{}-{:03d}.jpg".format(codes.get_date(), codes.get_exam_id(), 0), image)
+            cv2.imwrite("page-{}-{}-{:03d}.jpg".format(codes.get_date(), codes.get_exam_id(), 0), image)
+        else:
+            cv2.imwrite("{}-{:03d}.jpg".format(self.filename, self.index), image)
 
-        for code in codes.codes:
-            self.detected.append(code)
+        for c in codes.codes.values():
+            px, py = c.get_pos()
+            pw, ph = 120, 120
+            cv2.rectangle(image, (px, py), (px + pw, py + ph), (0, 0, 255), 5)
 
-        #print("Page", self.index, "processed.")
+        for c in generated_page_codeset.codes.values():
+            px, py = c.get_pos()
+            pw, ph = 120, 120
+            px = px - int(delta[0])
+            py = py - int(delta[1])
+            cv2.rectangle(image, (px, py), (px + pw, py + ph), (255, 0, 0), 5)
+
+            if c.data not in codes.codes.keys():
+                self.detected.append(c)
+
+
+
+        #for c in codes.codes.values():
+        #    self.detected.append(c)
 
         return codes
+
 
 if __name__ == '__main__':
     ppm = 400 / 25.4
@@ -184,6 +188,7 @@ if __name__ == '__main__':
             process = PageProcessor("test.pdf", i, all_codes, detected)
             processes.append(process)
             process.start()
+            break
             print("Started process", i)
             while len([p for p in processes if p.is_alive()]) >= 4:
                 time.sleep(1)
@@ -191,4 +196,4 @@ if __name__ == '__main__':
         for process in processes:
             process.join()
 
-        print(detected)
+        print(detected, len(detected))

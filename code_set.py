@@ -3,30 +3,27 @@ from code import Code
 
 class CodeSet:
     def __init__(self):
-        self.codes = []
-        self.datas = set()
+        self.codes = {}
 
     def append(self, code):
-        if code.data not in self.datas:
-            self.codes.append(code)
-            self.datas.add(code.data)
+        self.codes[code.data] = code
 
     def clear(self):
-        self.codes = []
-        self.datas = set()
+        self.codes.clear()
 
     def __repr__(self):
         text = str()
-        for code in self.codes:
+        for code in self.codes.values():
             text += str(code) + "\n"
         return text
 
     def filter(self, **kwargs):
-        filtered =  [x for x in self.codes if all(getattr(x, key) == value for key, value in kwargs.items())]
+        filtered =  [x for x in self.codes.values() if all(getattr(x, key) == value for key, value in kwargs.items())]
         result = CodeSet()
         for code in filtered:
             result.append(code)
         return result
+
 
 class PageCodeSet(CodeSet):
 
@@ -34,13 +31,12 @@ class PageCodeSet(CodeSet):
         super().__init__()
         if codeset is not None:
             self.codes = codeset.codes
-            self.datas = codeset.datas
 
     def get_q(self):
-        return next((x for x in self.codes if x.type == Code.TYPE_Q), None)
+        return next((x for x in self.codes.values() if x.type == Code.TYPE_Q), None)
 
     def get_p(self):
-        return next((x for x in self.codes if x.type == Code.TYPE_P), None)
+        return next((x for x in self.codes.values() if x.type == Code.TYPE_P), None)
 
     def get_page(self):
         source = self.get_p() or self.get_q()
@@ -49,12 +45,12 @@ class PageCodeSet(CodeSet):
         return None
 
     def get_exam_id(self):
-        if len(self.codes) > 0:
-            return self.codes[0].exam
+        if len(self.codes.values()) > 0:
+            return next(iter(self.codes.values())).exam
         return None
 
     def get_date(self):
-        if len(self.codes) > 0:
-            return self.codes[0].date
+        if len(self.codes.values()) > 0:
+            return next(iter(self.codes.values())).date
         return None
 
