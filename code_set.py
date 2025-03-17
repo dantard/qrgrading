@@ -8,6 +8,10 @@ class CodeSet:
     def append(self, code):
         self.codes[code.data] = code
 
+    def extend(self, codes):
+        for code in codes:
+            self.append(code)
+
     def clear(self):
         self.codes.clear()
 
@@ -17,13 +21,53 @@ class CodeSet:
             text += str(code) + "\n"
         return text
 
-    def filter(self, **kwargs):
+    def __len__(self):
+        return len(self.codes)
+
+    def __next__(self):
+        return next(iter(self.codes.values()))
+
+    def __iter__(self):
+        return iter(self.codes.values())
+
+    def select(self, **kwargs):
         filtered =  [x for x in self.codes.values() if all(getattr(x, key) == value for key, value in kwargs.items())]
         result = CodeSet()
         for code in filtered:
             result.append(code)
         return result
 
+    def get(self, code):
+        return self.codes.get(code.data)
+
+    def get_exams(self):
+        return sorted(list(set([x.exam for x in self.codes.values()])))
+
+    def get_questions(self):
+        return sorted(list(set([x.question for x in self.codes.values() if x.type == Code.TYPE_A])))
+
+    def get_answers(self):
+        return sorted(list(set([x.answer for x in self.codes.values() if x.type == Code.TYPE_A])))
+
+    def save(self, file_name):
+        with open(file_name, "w") as f:
+            for code in self.codes.values():
+                f.write(code.data + ",{},{},{},{},{},{}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page))
+
+    def load(self, file_name):
+        with open(file_name, "r") as f:
+            for line in f:
+                print(line)
+                data, x, y, w, h, page, pdf_page = line.strip().split(",")
+                self.append(Code(data, int(x), int(y), int(w), int(h), int(page), int(pdf_page)))
+
+    def get_date(self):
+        if len(self.codes.values()) > 0:
+            return next(iter(self.codes.values())).date
+        return None
+
+    def empty(self):
+        return len(self) == 0
 
 class PageCodeSet(CodeSet):
 
