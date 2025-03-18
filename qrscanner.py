@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import QGraphicsRectItem
 
 from code import Code
 from code_set import CodeSet, PageCodeSet
+from common import check_workspace, get_workspace_paths, get_temp_paths
 from page_processor import PageProcessor
-
-
+from utils import Questions, Generated
 
 if __name__ == '__main__':
 
@@ -23,77 +23,75 @@ if __name__ == '__main__':
     parser.add_argument('-E', '--end', type=int, help='Last page to process', default=None)
     parser.add_argument('-R', '--ratio', type=int, help='Resize image to save space', default=0.25)
     parser.add_argument('-p', '--process', help='Process pages in scanned folder', action="store_true")
+    parser.add_argument('-d', '--dpi', help='Dot per inch', type=int, default=400)
+
+
     args = vars(parser.parse_args())
 
-    dir_workspace = "workspace" + os.sep + os.sep
-    dir_pool = "pool/" + os.sep
-    dir_images = dir_pool + os.sep + "images" + os.sep
-    dir_data = dir_workspace + os.sep + "data" + os.sep
-    dir_scanned = dir_workspace + os.sep + "scanned" + os.sep
-    dir_xls = dir_workspace + os.sep + "results" + os.sep + "xls" + os.sep
-    dir_publish = dir_workspace + os.sep + "results" + os.sep + "pdf" + os.sep
+    if not check_workspace():
+        print("ERROR: qrscanner must be run from a workspace directory")
+        sys.exit(1)
 
-    directories = [dir_workspace, dir_pool, dir_images, dir_data, dir_scanned, dir_xls, dir_publish]
-
-    for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
-
-    ppm = 400 / 25.4
-    all_codes = CodeSet()
-    with open(dir_data + "generated.txt", "rb") as f:
-        lines = f.readlines()
-        for line in lines:
-            data, x, y, w, h, pag, pdf_pag = line.decode().strip().split(",")
-            x = int(int(x) / 65535 * 0.351459804 * ppm)
-            y = int(297 * ppm - int(int(y) / 65535 * 0.351459804 * ppm))  # 297???
-            code = Code(data, int(x), int(y), 120, 120, pag, pdf_pag)
-            code.set_page(int(pag))
-            all_codes.append(code)
+    dir_workspace, dir_data, dir_scanned, _, dir_xls, dir_publish = get_workspace_paths(os.getcwd())
+    dir_pool, dir_images = get_temp_paths(os.getcwd())
 
     if args.get("process", False):
 
+        os.makedirs(dir_images, exist_ok=True)
+
+        ppm = args.get("dpi") / 25.4
+
+        generated = Generated(ppm)
+        if not generated.load(dir_data + "generated.csv"):
+            print("ERROR: generated.csv not found")
+            sys.exit(1)
+
         with Manager() as manager:
-            detected = manager.list()
 
-            document = pymupdf.open(dir_scanned + "test.pdf")
-            npages = len(document)
-            document.close()
-
-            last_page = args["end"] if args["end"] is not None else npages
 
             processes = []
-            for i in range(args.get("begin"), last_page):
+            detected = manager.list()
 
-                # We send the filename and open the document in the process for three reasons:
-                # 1. Sending the page object is not possible because it is not pickable
-                # 2. Rendering the page image in parellel make the whole process much faster
-                # 3. For some reason sending the image to the process creates memory overflow
+            files = [x for x in os.listdir(dir_scanned) if x.endswith(".pdf")]
+            for filename in files:
 
-                process = PageProcessor(dir_scanned + "test.pdf", i, all_codes, detected, dir_images=dir_images, resize=args.get("ratio"))
-                processes.append(process)
-                process.start()
-                print("Started process", i)
-                while len([p for p in processes if p.is_alive()]) >= 4:
-                    time.sleep(0.25)
+                document = pymupdf.open(dir_scanned + filename)
+                last_page = args.get("end") if args.get("end") is not None else len(document)
+                document.close()
+
+                for i in range(args.get("begin"), last_page):
+
+                    # We send the filename and open the document in the process for three reasons:
+                    # 1. Sending the page object is not possible because it is not pickable
+                    # 2. Rendering the page image in parallel make the whole process much faster
+                    # 3. For some reason sending the image to the process creates memory overflow
+
+                    process = PageProcessor(dir_scanned + filename, i, generated, detected, dir_images=dir_images, resize=args.get("ratio"))
+                    processes.append(process)
+                    process.start()
+
+                    while len([p for p in processes if p.is_alive()]) >= 4:
+                        time.sleep(0.25)
 
             for process in processes:
                 process.join()
 
             codes = CodeSet()
             codes.extend(detected)
-            codes.save(dir_data + "detected.txt")
+            codes.save(dir_data + "detected.csv")
 
 
 
     codes = CodeSet()
-    codes.load(dir_data + "detected.txt")
+    if not codes.load(dir_data + "detected.csv"):
+        print("ERROR: detected.csv not found")
+        sys.exit(1)
 
     exams = codes.get_exams()
     date = codes.get_date()
 
-    print("Create NIA xls file")
-    with open(dir_xls + "nia.txt", "w") as f:
+    print("Creating NIA xls file")
+    with open(dir_xls + "nia.csv", "w") as f:
         f.write("Exam\tNIA\n")
         for exam in exams:
             nia = {0: 'Y', 1: 'Y', 2: 'Y', 3: 'Y', 4: 'Y', 5: 'Y'}
@@ -106,8 +104,8 @@ if __name__ == '__main__':
 
             f.write("{}\t{}\n".format(date*1000 + exam, nia))
 
-    print("Create exam xls file", exam)
-    with open(dir_xls + "raw.txt", "w") as f:
+    print("Creating RAW xls file")
+    with open(dir_xls + "raw.csv", "w") as f:
         for exam in exams:
             line = f"{date},{exam}"
             for question in codes.get_questions():
@@ -117,7 +115,7 @@ if __name__ == '__main__':
 
             f.write(line + "\n")
 
-    print("Reconstruct the exam")
+    print("Reconstructing exams")
 
     images = os.listdir(dir_images)
     for exam in exams:
@@ -130,7 +128,12 @@ if __name__ == '__main__':
 
         pdf_file.save(filename)
 
-    print("Annotate exam")
+    print("Annotating exams")
+
+    questions = Questions(dir_xls)
+    if not questions.load():
+        print("ERROR: questions.csv not found")
+        sys.exit(1)
 
     for exam in exams:
         filename = dir_publish + "{}{:03d}.pdf".format(date, exam)
@@ -138,7 +141,6 @@ if __name__ == '__main__':
         for page in pdf_file:
 
             this_page = codes.select(type=Code.TYPE_A, exam=exam, page=page.number+1)
-            print(this_page)
             for code in this_page:
                 if code.marked:
                     x, y = code.get_pos()
@@ -146,14 +148,14 @@ if __name__ == '__main__':
                     r = pymupdf.Rect(x, y, x+w, y+h)
                     annot = page.add_rect_annot(r)
                     annot.set_border(width=2)
-                    if code.answer == 1:
+                    if questions.get_value(code.question, code.answer) > 0:
                         annot.set_colors(stroke=(0,1,0))
                     else:
                         annot.set_colors(stroke=(1,0,0))
                     annot.update()
         pdf_file.save(filename.replace(".pdf", "-annotated.pdf"))
 
-
+    print("All done :)")
 
 
 

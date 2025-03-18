@@ -10,16 +10,17 @@ from PyQt5.QtWidgets import (QListWidget,
                              QInputDialog, QColorDialog)
 
 from button_edit_dialog import ButtonEditDialog
-from buttons import StepButton
+from buttons import StepButton, Shortcut, Button, TextButton, StateButton
 
 
 class DraggableList(QListWidget):
-    score_changed = pyqtSignal(object)
+    score_changed = pyqtSignal(object, int)
     goto_next = pyqtSignal()
 
     def __init__(self, exam_date, schema_filename):
         super().__init__()
 
+        self.exam_id = None
         self.config = {}
         self.scores = {}
         self.schema_dictionary = {}
@@ -48,11 +49,12 @@ class DraggableList(QListWidget):
                 self.scores = yaml.safe_load(file)
 
     def exam_changed(self, exam_id, prev_exam_id):
+        self.exam_id = exam_id
         if prev_exam_id is not None:
             self.store(prev_exam_id)
         self.save_scores()
 
-        self.retrieve(exam_id)
+        self.retrieve(self.exam_id)
 
 
     def get_page(self):
@@ -80,6 +82,12 @@ class DraggableList(QListWidget):
 
                     if button_config.get("type") == 'button':
                         button = StepButton(button_name, **button_config)
+                        button.score_changed.connect(self.button_clicked) # type: ignore
+                    elif button_config.get("type") == 'text':
+                        button = TextButton(button_name, **button_config)
+                    elif button_config.get("type") == 'shortcut':
+                        button = Shortcut(button_name, **button_config)
+                        button.clicked.connect(self.shortcut_activated)
                     else:
                         button = None
 
@@ -92,12 +100,16 @@ class DraggableList(QListWidget):
 
     def save_schema(self):
         buttons =  {}
-        for b in self.filter_buttons(StepButton):  # type: Score
+        for b in self.filter_buttons(Button):
             buttons[b.get_name()] = b.get_config()
 
         with open(self.schema_filename, "w") as f:
             schema = {"buttons": buttons, "config": self.config}
             yaml.dump(schema, f, sort_keys=False)
+
+    def button_clicked(self):
+        self.store(self.exam_id)
+        self.score_changed.emit(self, self.exam_id)
 
     def add_button(self):
 
@@ -127,6 +139,9 @@ class DraggableList(QListWidget):
 
         if kind == 'button':
             button = StepButton(name, **config)
+            button.score_changed.connect(self.button_clicked)
+        elif kind == 'text':
+            button = TextButton(name, **config)
         else:
             button = None
 
@@ -169,11 +184,26 @@ class DraggableList(QListWidget):
         #     menu.addSeparator()
         #menu.addAction("Edit Config", self.edit_rubric_config)
         menu.addAction("Add Button", self.add_button)
-        #menu.addAction("Add Shortcut", self.add_shortcut)
+        menu.addAction("Add Shortcut", self.add_shortcut)
 
         menu.exec(self.mapToGlobal(pos))
         self.clearSelection()
         self.clearFocus()
+
+    def compute_score(self, exam_id):
+        this_exam_data = self.scores.get(int(exam_id), {})
+
+        points = 0
+        for button in self.filter_buttons(StepButton):
+            this_button_data = this_exam_data.get(button.get_name(), {})
+            print("this_button_data: ", this_button_data)
+            value = this_button_data.get("value", 0)
+            if value >= 0:
+                value = value * button.get_full_value() / 100.0
+                points = points + value
+        return points
+
+
 
     def save_scores(self):
         with open(self.scores_filename, 'w') as file:
@@ -237,28 +267,31 @@ class DraggableList(QListWidget):
     #     except:
     #         print("No rubric data found")
     #
-    # def shortcut_activated(self, buttons):
-    #     for b in self.buttons(StepButton):  # type: StepButton
-    #         b.button.setChecked(b.get_name() in buttons)
-    #         b.clicked()
-    #
-    # def add_shortcut(self):
-    #     text, ok = QInputDialog.getText(self, "Shortcut", "Name:")
-    #     if ok:
-    #
-    #         buttons = []
-    #         for b in self.buttons(StepButton):  # type: StepButton
-    #             if b.button.isChecked():
-    #                 buttons.append(b.get_name())
-    #
-    #         b2 = Shortcut(text, {"buttons": buttons, "color": "#FF0000", "type":"shortcut"})
-    #         b2.shortcut_activated.connect(self.shortcut_activated) # type: ignore
-    #         item = QListWidgetItem()
-    #         self.addItem(item)
-    #         self.setItemWidget(item, b2)
-    #         item.setSizeHint(b2.sizeHint())
-    #         item.setFlags(item.flags() & ~Qt.ItemIsDragEnabled)
-    #         self.save_schema()
+    def shortcut_activated(self):
+        buttons = self.sender().get_buttons()
+
+        for b in self.filter_buttons(StepButton):  # type: StepButton
+            b.button.setChecked(b.get_name() in buttons)
+            b.clicked()
+
+    def add_shortcut(self):
+        text, ok = QInputDialog.getText(self, "Shortcut", "Name:")
+        if ok:
+
+            buttons = []
+            for b in self.filter_buttons(StepButton):  # type: StepButton
+                if b.button.isChecked():
+                    buttons.append(b.get_name())
+
+            b2 = Shortcut(text, buttons=buttons)
+            b2.clicked.connect(self.shortcut_activated) # type: ignore
+
+            item = QListWidgetItem()
+            self.addItem(item)
+            self.setItemWidget(item, b2)
+            item.setSizeHint(b2.sizeHint())
+            item.setFlags(item.flags() & ~Qt.ItemIsDragEnabled)
+            self.save_schema()
     #
     #
     #
@@ -308,38 +341,37 @@ class DraggableList(QListWidget):
     #
 
     #
-    # def delete_button(self, position):
-    #     qm = QMessageBox()
-    #     ret = qm.question(self, '', "Are you sure?", qm.Yes | qm.No)
-    #
-    #     if ret == qm.Yes:
-    #         item = self.takeItem(position)
-    #         del item
-    #         self.save_schema()
-    #
-    # def add_comment(self, position):
-    #     # help me get text comment with dialog
-    #     item = self.item(position)
-    #     widget = self.itemWidget(item)
-    #     text, ok = QInputDialog.getText(self, 'Add Comment', 'Comment:', text=widget.get_comment())
-    #     if ok:
-    #         item = self.item(position)
-    #         widget = self.itemWidget(item)
-    #         widget.setToolTip(text)
-    #         widget.set_comment(text)
-    #
-    # def duplicate_button(self, position):
-    #     item = self.item(position)
-    #     widget = self.itemWidget(item)
-    #     name, ok = QInputDialog.getText(self, 'Duplicate', 'Name:', text=widget.get_name() + "_copy")
-    #     if ok:
-    #         b2 = widget.__class__(name, widget.get_schema(), percent=self.config.get("percent", 100))
-    #
-    #         item = QListWidgetItem()
-    #         self.addItem(item)
-    #         self.setItemWidget(item, b2)
-    #         item.setSizeHint(b2.sizeHint())
-    #         self.save_schema()
+    def delete_button(self, position):
+        ret = QMessageBox().question(self, '', "Are you sure?", QMessageBox.Yes | QMessageBox.No)
+
+        if ret == QMessageBox.Yes:
+            item = self.takeItem(position)
+            del item
+            self.save_schema()
+
+    def add_comment(self, position):
+        # help me get text comment with dialog
+        item = self.item(position)
+        widget = self.itemWidget(item)
+        text, ok = QInputDialog.getText(self, 'Add Comment', 'Comment:', text=widget.get_comment())
+        if ok:
+            item = self.item(position)
+            widget = self.itemWidget(item)
+            widget.setToolTip(text)
+            widget.set_comment(text)
+
+    def duplicate_button(self, position):
+        item = self.item(position)
+        widget = self.itemWidget(item)
+        name, valid = QInputDialog.getText(self, 'Duplicate', 'Name:', text=widget.get_name() + "_copy")
+        if valid:
+            button = widget.__class__(name, **widget.get_config())
+            button.score_changed.connect(self.button_clicked)
+            item = QListWidgetItem()
+            self.addItem(item)
+            self.setItemWidget(item, button)
+            item.setSizeHint(button.sizeHint())
+            self.save_schema()
     #
 
     #
@@ -385,7 +417,7 @@ class DraggableList(QListWidget):
         if self.scores.get(exam_id) is None:
             self.scores[exam_id] = {}
 
-        for b in self.filter_buttons():  # type: Score
+        for b in self.filter_buttons(StateButton):  # type: Score
             self.scores[exam_id][b.get_name()] = b.get_state()
             #b.clear_comment()
 
@@ -394,42 +426,11 @@ class DraggableList(QListWidget):
         self.current_exam_id = exam_id
         rubric_data = self.scores.get(exam_id, {})
         if  rubric_data is not None:
-            for b in self.filter_buttons():  # type: Score
-                b.blockSignals(True)
-                b.set_state(rubric_data.get(b.get_name(), {}))
-                b.blockSignals(False)
-    #
-    #     self.modified = False
-    #
-    #
-    # def save_rubric_data_yaml(self):
-    #     with open(self.rubric_grades_filename, 'w') as file:
-    #         yaml.dump(self.rubric_grades_data, file)
-    #
-    # def generate_rubric_data_csv(self, xls_path):
-    #     with open(xls_path + self.table_name + ".csv", 'w') as file:
-    #         writer = csv.writer(file)
-    #         header = ["Exam #"]
-    #         header.extend([b.get_name() + "'" for b in self.buttons()])
-    #         writer.writerow(header)
-    #
-    #         scores = ["0"]
-    #         for b in self.buttons():
-    #             scores.append(b.get_full_value() if isinstance(b, StepButton) else "0")
-    #         writer.writerow(scores)
-    #
-    #         # For each exam
-    #         for exam_id in self.rubric_grades_data:
-    #             # Prepare row to append data
-    #             row = [exam_id]
-    #
-    #             # For each button
-    #             for i in range(self.count()):
-    #                 button_widget = self.itemWidget(self.item(i))
-    #                 state_for_this_button_for_this_exam = self.rubric_grades_data[exam_id].get(button_widget.get_name(), {})
-    #                 value = button_widget.get_xls_value(state_for_this_button_for_this_exam)
-    #                 row.append(value)
-    #             writer.writerow(row)
+            for button in self.filter_buttons(StateButton):  # type: Score
+                button.blockSignals(True)
+                button.set_state(rubric_data.get(button.get_name(), {}))
+                button.blockSignals(False)
+
 
     def startDrag(self, ev):
         selected = self.selectedIndexes()[0].row()

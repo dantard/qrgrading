@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QApplication
 
 from code import Code
 from code_set import CodeSet
+from common import check_workspace, get_workspace_paths
 from draggable_list import DraggableList
 
 
@@ -34,14 +35,17 @@ class Mark(QGraphicsRectItem):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.dir_publish = "workspace" + os.sep + "results" + os.sep + "pdf" + os.sep
-        self.dir_xls = "workspace" + os.sep + "results" + os.sep + "xls" + os.sep
-        self.dir_data = "workspace" + os.sep + "data" + os.sep
 
         self.current_exam = None
         self.detected = CodeSet()
         self.rubrics = []
         self.questions = None
+
+        (self.dir_workspace,
+         self.dir_data,
+         self.dir_scanned, _,
+         self.dir_xls,
+         self.dir_publish) = get_workspace_paths(os.getcwd())
 
         self.central_widget = QWidget()
         self.main_layout = QHBoxLayout()
@@ -71,7 +75,7 @@ class MainWindow(QMainWindow):
         self.show()
 
     def load_detected(self):
-        self.detected.load(self.dir_data + "detected.txt")
+        self.detected.load(self.dir_data + "detected.csv")
 
 
     def load_questions(self):
@@ -80,10 +84,15 @@ class MainWindow(QMainWindow):
 
     def load_schemas(self):
         r1 = DraggableList(0, "rubric1.scm")
+        r1.score_changed.connect(self.rubric_score_changed)
         r2 = DraggableList(0, "rubric2.scm")
+        r2.score_changed.connect(self.rubric_score_changed)
         self.rubrics_tabs.addTab(r1, "Rubric 1")
         self.rubrics_tabs.addTab(r2, "Rubric 2")
         self.rubrics.extend([r1, r2])
+
+    def rubric_score_changed(self, rubric, exam_id):
+        rubric.compute_score(exam_id)
 
 
     def pdf_tree_selection_changed(self, current, previous):
@@ -143,8 +152,12 @@ class MainWindow(QMainWindow):
         for answer in yellow:
             marks[answer].setPen(QPen(Qt.yellow, 2))
 
-        print("------")
-        self.get_quiz_score(exam_id)
+    def update_all_quiz_scores(self):
+        for index in range(self.pdf_tree.topLevelItemCount()):
+            item = self.pdf_tree.topLevelItem(index)
+            exam_id = int(item.text(0)) % 1000
+            score = self.get_quiz_score(exam_id)
+            item.setText(1, str(score))
 
     def get_quiz_score(self, exam_id):
         score = 0
@@ -170,10 +183,16 @@ class MainWindow(QMainWindow):
     def code_clicked(self, code):
         code.marked = not code.marked
         self.process_exam()
+        self.update_all_quiz_scores()
 
 
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
+
+    if not check_workspace():
+        print("ERROR: qrgrader must be run from the workspace root")
+        sys.exit(1)
+
     main = MainWindow()
     sys.exit(app.exec_())

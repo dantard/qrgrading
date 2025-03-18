@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 from multiprocessing import Manager, Pool, Process
 
@@ -116,7 +117,7 @@ class PageProcessor(Process):
         page = detected.get_page()
         exam = detected.get_exam_id()
 
-        # If we dio not find the page number, try to find it in the generated detected
+        # If we did not find the page number, try to find it in the generated detected
         if page is None:
             for code in detected:
                 code = self.generated.get(code)
@@ -165,3 +166,5 @@ class PageProcessor(Process):
             code.scale(72.0/self.dpi)
             code.set_marked(detected.get(code) is None)
             self.result.append(code)
+
+        print("Processed", self.filename, "page", self.index, len(self.result))

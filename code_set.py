@@ -1,3 +1,5 @@
+import os
+
 from code import Code
 
 
@@ -52,9 +54,12 @@ class CodeSet:
     def save(self, file_name):
         with open(file_name, "w") as f:
             for code in self.codes.values():
-                f.write(code.data + ",{},{},{},{},{},{},{}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
+                f.write(code.data + ",{:.2f},{:.2f},{:.2f},{:.2f},{},{},{:d}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
 
     def load(self, file_name):
+        if not os.path.exists(file_name):
+            return False
+
         with open(file_name, "r") as f:
             for line in f:
                 fields = line.strip().split(",")
@@ -63,6 +68,7 @@ class CodeSet:
                 if len(fields) > 7:
                     code.set_marked(int(fields[7]))
                 self.append(code)
+        return True
 
     def get_date(self):
         if len(self.codes.values()) > 0:

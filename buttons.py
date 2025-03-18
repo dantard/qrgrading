@@ -1,35 +1,91 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QCursor, QGuiApplication
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QSpinBox, QLabel
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QSpinBox, QLabel, QTextEdit, QVBoxLayout
+
 
 class Button(QWidget):
-    pass
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
 
-class StepButton(Button):
+    def get_name(self):
+        return self.name
 
-    score_modified = pyqtSignal()
+
+class Shortcut(Button):
+
+    clicked = pyqtSignal()
 
     def __init__(self, name, **kwargs):
-        super(QWidget, self).__init__()
+        super().__init__(name)
+        self.button = QPushButton(name)
+        self.button.clicked.connect(self.clicked.emit) # type: ignore
+        self.buttons = kwargs.get("buttons", [])
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(self.button)
+        font = self.button.font()
+        font.setItalic(True)
+        self.button.setFont(font)
 
-        self.config = {"weight": 1, "value": 1,
+
+    def get_buttons(self):
+        return self.buttons
+
+    def get_config(self):
+        return {"type":"shortcut", "buttons": self.buttons}
+
+
+class StateButton(Button):
+    pass
+
+class TextButton(StateButton):
+
+        clicked = pyqtSignal()
+
+        def __init__(self, name, **kwargs):
+            super().__init__(name)
+            self.button = QTextEdit(name)
+            self.button.setMinimumWidth(10)
+            self.setMinimumWidth(10)
+            self.setLayout(QVBoxLayout())
+            self.layout().addWidget(QLabel(name))
+            self.layout().addWidget(self.button)
+
+        def get_config(self):
+            return {"type":"text"}
+
+        def get_state(self):
+            return {"text":self.button.toPlainText()}
+
+        def set_state(self, state):
+            print("kkkkkkkkkkkkkk", state)
+            self.button.setText(state.get("text", ""))
+
+
+class StepButton(StateButton):
+
+    score_changed = pyqtSignal()
+
+    def __init__(self, name, **kwargs):
+        super().__init__(name)
+
+        self.config = {"weight": 1, "full_value": 1,
                        "steps": 0, "color": None,
                        "comment": "", "start_with": 100,
-                       "click_next": False}
+                       "click_next": False, "type":"button"}
 
         self.config.update(kwargs)
 
         self.weight = self.config.get('weight', 1)
-        self.value = self.config.get('value', 1)
+        self.full_value = self.config.get('full_value', 1)
         self.n_steps = self.config.get('steps', 0)
         color = self.config.get("color", None)
 
-        self.name = name
         self.comment = None
         self.step = int(100 / self.n_steps) if self.n_steps > 0 else 100
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(15, 5, 15, 5)
+        #layout.setContentsMargins(15, 5, 15, 5)
 
         self.button = QPushButton(name)
         self.button.setMinimumWidth(10)
@@ -45,7 +101,7 @@ class StepButton(Button):
         self.spinner.setSingleStep(self.step)
         self.spinner.setMaximum(100)
         self.spinner.setMaximumWidth(50)
-        self.spinner.valueChanged.connect(self.score_modified.emit) # type: ignore
+        self.spinner.valueChanged.connect(self.score_changed.emit) # type: ignore
 
         layout.addWidget(self.button)
         self.comment_lbl = QLabel(self.button)
@@ -100,9 +156,6 @@ class StepButton(Button):
         else:
             return None
 
-    def get_name(self):
-        return self.name
-
     def clicked(self):
         self.spinner.blockSignals(True)
         if QGuiApplication.queryKeyboardModifiers() == Qt.ControlModifier:
@@ -116,7 +169,7 @@ class StepButton(Button):
         font.setBold(self.button.isChecked())
         self.button.setFont(font)
 
-        self.score_modified.emit() # type: ignore
+        self.score_changed.emit() # type: ignore
 
     def set_state(self, state):
         self.set_comment(state.get("comment", ""))
@@ -136,7 +189,7 @@ class StepButton(Button):
         font.setBold(self.button.isChecked())
         self.button.setFont(font)
 
-        self.score_modified.emit() # type: ignore
+        self.score_changed.emit() # type: ignore
 
     def set_comment(self, text):
         self.comment_lbl.setVisible(text != "")
@@ -150,7 +203,7 @@ class StepButton(Button):
         self.set_comment("")
 
     def get_full_value(self):
-        return self.value
+        return self.full_value
 
     def click(self):
         self.button.click()
