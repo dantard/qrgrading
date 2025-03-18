@@ -11,6 +11,7 @@ class Code:
         self.y = y
         self.w = w
         self.h = h
+        self.marked = False
         self.exam = None
         self.page = page
         self.pdf_page = pdf_page
@@ -40,12 +41,22 @@ class Code:
                 self.data = self.data[:11] + str(self.answer)
             self.type = self.TYPE_A
 
+    def set_marked(self, marked):
+        self.marked = marked
+
     def set_page(self, page):
         self.page = page
 
     def set_pdf_page(self, page):
         self.pdf_page = page
 
+    def set_pos(self, pos):
+        self.x = pos[0]
+        self.y = pos[1]
+
+    def move(self, delta):
+        self.x += delta[0]
+        self.y += delta[1]
 
     def get_exam_id(self):
         return self.exam
@@ -68,10 +79,16 @@ class Code:
     def get_size(self):
         return self.w, self.h
 
+    def set_size(self, *args):
+        self.w, self.h = args
+
+    def scale(self, factor):
+        self.x, self.y = self.x * factor, self.y * factor
+        self.w, self.h = self.w * factor, self.h * factor
 
     def __repr__(self):
         if self.type == self.TYPE_A:
-            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, Q:{self.question}, A:{self.answer})"
+            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, Q:{self.question}, A:{self.answer}), M:{self.marked}"
         elif self.type in [self.TYPE_P, self.TYPE_Q]:
             return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page})"
         elif self.type == self.TYPE_N:

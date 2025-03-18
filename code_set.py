@@ -52,14 +52,17 @@ class CodeSet:
     def save(self, file_name):
         with open(file_name, "w") as f:
             for code in self.codes.values():
-                f.write(code.data + ",{},{},{},{},{},{}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page))
+                f.write(code.data + ",{},{},{},{},{},{},{}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
 
     def load(self, file_name):
         with open(file_name, "r") as f:
             for line in f:
-                print(line)
-                data, x, y, w, h, page, pdf_page = line.strip().split(",")
-                self.append(Code(data, int(x), int(y), int(w), int(h), int(page), int(pdf_page)))
+                fields = line.strip().split(",")
+                data, x, y, w, h, page, pdf_page = fields[:7]
+                code = Code(data, float(x), float(y), float(w), float(h), int(page), int(pdf_page))
+                if len(fields) > 7:
+                    code.set_marked(int(fields[7]))
+                self.append(code)
 
     def get_date(self):
         if len(self.codes.values()) > 0:
@@ -68,6 +71,9 @@ class CodeSet:
 
     def empty(self):
         return len(self) == 0
+
+    def first(self, **kwargs) -> Code:
+        return next(iter(self.select(**kwargs)), None)
 
 class PageCodeSet(CodeSet):
 

@@ -14,12 +14,12 @@ from utils import pix2np, get_patches, threshold, get_codes, compute_similarity_
 
 class PageProcessor(Process):
 
-    def __init__(self, filename, index, generated, codes_detected, **kwargs):
+    def __init__(self, filename, index, generated, result, **kwargs):
         super().__init__()
         self.filename = filename
         self.index = index
         self.generated = generated
-        self.detected = codes_detected
+        self.result = result
 
         self.dpi = kwargs.get("dpi", 400)
         self.thresholds = kwargs.get("thresholds", [50, 55, 60, 65, 70, 75, 80])
@@ -40,7 +40,7 @@ class PageProcessor(Process):
 
         # Find page, orientation and rotate page
         rotation = None
-        codes = PageCodeSet()
+        detected = PageCodeSet()
 
         for th in self.thresholds:
             ph, pw = image.shape[0], image.shape[1]
@@ -65,40 +65,40 @@ class PageProcessor(Process):
                     rotation = None
                 elif text.startswith("Q"):
                     rotation = cv2.ROTATE_90_CLOCKWISE
-                codes.append(Code(text, cx, cy, cw, ch))
+                detected.append(Code(text, cx, cy, cw, ch))
 
             for text, cx, cy, cw, ch in get_codes(nw):
                 if text.startswith("P"):
                     rotation = cv2.ROTATE_90_CLOCKWISE
                 elif text.startswith("Q"):
                     rotation = cv2.ROTATE_90_COUNTERCLOCKWISE
-                codes.append(Code(text, cx, cy, cw, ch))
+                detected.append(Code(text, cx, cy, cw, ch))
 
             for text, cx, cy, cw, ch in get_codes(sw):
                 if text.startswith("P"):
                     rotation = cv2.ROTATE_90_COUNTERCLOCKWISE
                 elif text.startswith("Q"):
                     rotation = None
-                codes.append(Code(text, cx, cy, cw, ch))
+                detected.append(Code(text, cx, cy, cw, ch))
 
             for text, cx, cy, cw, ch in get_codes(se):
                 if text.startswith("P"):
                     rotation = cv2.ROTATE_180
                 elif text.startswith("Q"):
                     rotation = cv2.ROTATE_90_COUNTERCLOCKWISE
-                codes.append(Code(text, cx, cy, cw, ch))
+                detected.append(Code(text, cx, cy, cw, ch))
 
         if rotation is not None:
             image = cv2.rotate(image, rotation)
 
         # Get the page number if we got it
-        page = codes.get_page() if codes.get_page() is not None else 0
+        page = detected.get_page() if detected.get_page() is not None else 0
 
-        # Clear the codes because the
+        # Clear the detected because the
         # page may have been rotated
-        codes.clear()
+        detected.clear()
 
-        # Process the page and extract the codes
+        # Process the page and extract the detected
         for th in self.thresholds:
             th_image = threshold(image, th)
             patches = get_patches(th_image, self.ppm, 8)
@@ -110,31 +110,58 @@ class PageProcessor(Process):
                     cv2.rectangle(image, (px, py), (px + pw, py + ph), (0, 0, 255), 1)
 
                 for text, cx, cy, cw, ch in get_codes(patch):
-                    codes.append(Code(text, px + cx, py + cy, cw, ch, page, self.index))
+                    detected.append(Code(text, px + cx, py + cy, cw, ch, page, self.index))
 
-        # Check if we already have the page number otherwise
-        # try to get it from the generated codes
-        # if page is None:
-        #     page = 0
-        #     for code in codes:
-        #         if self.generated.get(code) is not None:
-        #             page = self.generated.get(code).get_page()
-        #             break
-        #     for code in codes:
-        #         code.set_page(page)
+        # Try again with the whole page
+        page = detected.get_page()
+        exam = detected.get_exam_id()
+
+        # If we dio not find the page number, try to find it in the generated detected
+        if page is None:
+            for code in detected:
+                code = self.generated.get(code)
+                if code:=self.generated.get(code):
+                    page = code.get_page()
+                    exam = code.get_exam_id()
+                    break
+            for code in detected:
+                code.set_page(page)
 
         if self.resize != 1.0:
             image = cv2.resize(image, (int(image.shape[1] * self.resize), int(image.shape[0] * self.resize)),
                                interpolation=cv2.INTER_AREA)
 
-        if codes.get_page() is not None:
-            cv2.imwrite(self.dir_images + os.sep + "page-{}-{}-{:03d}.jpg".format(codes.get_date(), codes.get_exam_id(), codes.get_page()), image)
-        elif codes.get_exam_id():
-            cv2.imwrite(self.dir_images + os.sep + "page-{}-{}-{:03d}.jpg".format(codes.get_date(), codes.get_exam_id(), 0), image)
+        if detected.get_page() is not None:
+            cv2.imwrite(self.dir_images + os.sep + "page-{}-{}-{:03d}.jpg".format(detected.get_date(), detected.get_exam_id(), detected.get_page()), image)
+        elif detected.get_exam_id():
+            cv2.imwrite(self.dir_images + os.sep + "page-{}-{}-{:03d}.jpg".format(detected.get_date(), detected.get_exam_id(), 0), image)
         else:
             cv2.imwrite(self.dir_images + os.sep + "{}-{:03d}.jpg".format(self.filename, self.index), image)
 
-        for c in codes.codes.values():
-            self.detected.append(c)
+        # # Compute the transformation
+        generated_page_codeset = PageCodeSet(self.generated.select(exam=exam, page=page))
 
-        return codes
+        # Compute the transformation
+        if detected.get_p() is not None and detected.get_q() is not None:
+            p11 = detected.get_p().get_pos()
+            p12 = detected.get_q().get_pos()
+            p21 = generated_page_codeset.get_p().get_pos()
+            p22 = generated_page_codeset.get_q().get_pos()
+            _, _, delta = compute_similarity_transform(p21, p22, p11, p12)
+        elif detected.get_p() is not None:
+            x1, y1 = detected.get_p().get_pos()
+            x2, y2 = generated_page_codeset.get_p().get_pos()
+            delta = (x2 - x1, y2 - y1)
+        elif detected.get_q() is not None:
+            x1, y1 = detected.get_q().get_pos()
+            x2, y2 = generated_page_codeset.get_q().get_pos()
+            delta = (x2 - x1, y2 - y1)
+        else:
+            delta = (0, 0)
+
+        for code in generated_page_codeset:
+            code.move(delta)
+            code.set_size(120,120)
+            code.scale(72.0/self.dpi)
+            code.set_marked(detected.get(code) is None)
+            self.result.append(code)

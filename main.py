@@ -1,17 +1,17 @@
 import argparse
 import os
+import sys
 import time
 from multiprocessing import Manager, Pool, Process
 
 import cv2
 import pymupdf
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QGraphicsRectItem
 
 from code import Code
 from code_set import CodeSet, PageCodeSet
 from page_processor import PageProcessor
-from utils import pix2np, get_patches, threshold, get_codes, compute_similarity_transform
-
-
 
 
 
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('-B', '--begin', type=int, help='First page to process', default=0)
     parser.add_argument('-E', '--end', type=int, help='Last page to process', default=None)
     parser.add_argument('-R', '--ratio', type=int, help='Resize image to save space', default=0.25)
-    parser.add_argument('-p', '--process', type=int, help='Process pages in scanned folder')
+    parser.add_argument('-p', '--process', help='Process pages in scanned folder', action="store_true")
     args = vars(parser.parse_args())
 
     dir_workspace = "workspace" + os.sep + os.sep
@@ -47,13 +47,11 @@ if __name__ == '__main__':
             data, x, y, w, h, pag, pdf_pag = line.decode().strip().split(",")
             x = int(int(x) / 65535 * 0.351459804 * ppm)
             y = int(297 * ppm - int(int(y) / 65535 * 0.351459804 * ppm))  # 297???
-            code = Code(data, int(x), int(y), 50, 50, pag, pdf_pag)
+            code = Code(data, int(x), int(y), 120, 120, pag, pdf_pag)
             code.set_page(int(pag))
             all_codes.append(code)
 
-    pool = Pool(processes=4)
-
-    if args.get("process", True) or True:
+    if args.get("process", False):
 
         with Manager() as manager:
             detected = manager.list()
@@ -86,6 +84,8 @@ if __name__ == '__main__':
             codes.extend(detected)
             codes.save(dir_data + "detected.txt")
 
+
+
     codes = CodeSet()
     codes.load(dir_data + "detected.txt")
 
@@ -99,8 +99,8 @@ if __name__ == '__main__':
             nia = {0: 'Y', 1: 'Y', 2: 'Y', 3: 'Y', 4: 'Y', 5: 'Y'}
             for row in range(6):
                 for number in range(10):
-                    result = codes.select(exam=exam, type=Code.TYPE_N, number=row*10 + number)
-                    if result.empty():
+                    result = codes.first(exam=exam, type=Code.TYPE_N, number=row*10 + number)
+                    if result is None or result.marked:
                         nia[row] = number if nia[row] == 'Y' else 'X'
             nia = "".join([str(x) for x in nia.values()])
 
@@ -112,8 +112,8 @@ if __name__ == '__main__':
             line = f"{date},{exam}"
             for question in codes.get_questions():
                 for answer in codes.get_answers():
-                    result = codes.select(exam=exam, type=Code.TYPE_A, question=question, answer=answer)
-                    line += ",1" if result.empty() else ",0"
+                    result = codes.first(exam=exam, type=Code.TYPE_A, question=question, answer=answer)
+                    line += ",1" if result is None or result.marked else ",0"
 
             f.write(line + "\n")
 
@@ -125,11 +125,10 @@ if __name__ == '__main__':
         pdf_file = pymupdf.open()
         exam_images = sorted([x for x in images if x.startswith("page-{}-{}-".format(date, exam))])
         for image in exam_images:
-            page = pdf_file.new_page()
+            page = pdf_file.new_page() # noqa
             page.insert_image(pymupdf.Rect(0, 0, 595.28, 842), filename=dir_images + os.sep + image)
 
         pdf_file.save(filename)
-
 
     print("Annotate exam")
 
@@ -137,37 +136,13 @@ if __name__ == '__main__':
         filename = dir_publish + "{}{:03d}.pdf".format(date, exam)
         pdf_file = pymupdf.open(filename)
         for page in pdf_file:
-            this_page = PageCodeSet(codes.select(exam=exam, page=page.number + 1))
-            generated_page_codeset = PageCodeSet(all_codes.select(exam=exam, page=page.number + 1))
 
-            # Compute the transformation
-            if this_page.get_p() is not None and this_page.get_q() is not None:
-                p11 = this_page.get_p().get_pos()
-                p12 = this_page.get_q().get_pos()
-                p21 = generated_page_codeset.get_p().get_pos()
-                p22 = generated_page_codeset.get_q().get_pos()
-                _, _, delta = compute_similarity_transform(p11, p12, p21, p22)
-            elif this_page.get_p() is not None:
-                x1, y1 = this_page.get_p().get_pos()
-                x2, y2 = generated_page_codeset.get_p().get_pos()
-                delta = (x2 - x1, y2 - y1)
-            elif this_page.get_q() is not None:
-                x1, y1 = this_page.get_q().get_pos()
-                x2, y2 = generated_page_codeset.get_q().get_pos()
-                delta = (x2 - x1, y2 - y1)
-            else:
-                delta = (0, 0)
-
-            this_page = this_page.select(type=Code.TYPE_A)
-            generated_page_codeset = generated_page_codeset.select(type=Code.TYPE_A)
-
-            for code in generated_page_codeset:
-                if codes.get(code) is None or args.get("annotate") == "all":
+            this_page = codes.select(type=Code.TYPE_A, exam=exam, page=page.number+1)
+            print(this_page)
+            for code in this_page:
+                if code.marked:
                     x, y = code.get_pos()
-                    x = x - int(delta[0])
-                    y = y - int(delta[1])
-                    w, h = 120,120
-                    x,y,w,h = x/5.55, y/5.55, w/5.55, h/5.55
+                    w, h = code.get_size()
                     r = pymupdf.Rect(x, y, x+w, y+h)
                     annot = page.add_rect_annot(r)
                     annot.set_border(width=2)
