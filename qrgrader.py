@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QApplication
 
 from code import Code
 from code_set import CodeSet
-from common import check_workspace, get_workspace_paths
+from common import check_workspace, get_workspace_paths, Questions
 from draggable_list import DraggableList
 
 
@@ -79,7 +79,10 @@ class MainWindow(QMainWindow):
 
 
     def load_questions(self):
-        self.questions = pandas.read_csv(self.dir_xls + "questions.csv", sep='\t', header=0)
+        self.questions = Questions(self.dir_xls)
+        if not self.questions.load():
+            print("ERROR: questions file nos present")
+            sys.exit(1)
 
 
     def load_schemas(self):
@@ -135,7 +138,7 @@ class MainWindow(QMainWindow):
                 r.setParentItem(self.swik.view.get_page(index))
                 marks[code] = r
                 if code.marked:
-                    if self.questions.loc[code.question, chr(64 + code.answer)]>0:
+                    if self.questions.get_value(code.question, code.answer)>0:
                         r.setPen(QPen(Qt.green, 2))
                     else:
                         r.setPen(QPen(Qt.red, 2))
@@ -164,7 +167,7 @@ class MainWindow(QMainWindow):
         exam_codes = self.detected.select(exam=exam_id, type=Code.TYPE_A)
         for code in exam_codes:
             if code.marked:
-                score += self.questions.loc[code.question-1, chr(64 + code.answer)]
+                score += self.questions.get_value(code.question, code.answer)
         return score
 
     def get_multiple_marks(self, exam_id):
