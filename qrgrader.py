@@ -3,14 +3,15 @@ import os
 import pandas
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from PyQt5.QtGui import QPen
-from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget
+from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget, QLabel, QVBoxLayout, \
+    QSizePolicy, QLayout, QFormLayout, QCheckBox
 from swikv4.widgets.swik_basic_widget import SwikBasicWidget
 import sys
 from PyQt5.QtWidgets import QApplication
 
 from code import Code
 from code_set import CodeSet
-from common import check_workspace, get_workspace_paths, Questions
+from common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
 from draggable_list import DraggableList
 
 
@@ -39,7 +40,8 @@ class MainWindow(QMainWindow):
         self.current_exam = None
         self.detected = CodeSet()
         self.rubrics = []
-        self.questions = None
+        self.rubrics_labels = []
+        self.rubrics_cb = []
 
         (self.dir_workspace,
          self.dir_data,
@@ -47,56 +49,130 @@ class MainWindow(QMainWindow):
          self.dir_xls,
          self.dir_publish) = get_workspace_paths(os.getcwd())
 
+        self.xls_questions = Questions(self.dir_xls)
+        self.xls_nia = Nia(self.dir_xls)
+        self.xls_data = StudentsData(self.dir_xls)
+
         self.central_widget = QWidget()
-        self.main_layout = QHBoxLayout()
+        self.main_layout = QVBoxLayout()
         self.central_widget.setLayout(self.main_layout)
         self.setCentralWidget(self.central_widget)
         self.pdf_tree = QTreeWidget()
         self.pdf_tree.setColumnCount(4)
         self.swik = SwikBasicWidget()
         self.splitter = QSplitter()
+
+        # Prepare Details layout
+        self.name_lbl = QLabel()
+        self.name_lbl.setMinimumWidth(300)
+        self.name_lbl.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.nia_lbl = QLabel()
+        self.nia_lbl.setMinimumWidth(100)
+        self.nia_lbl.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.group_lbl = QLabel()
+        self.group_lbl.setMinimumWidth(100)
+        self.group_lbl.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        details_layout = QHBoxLayout()
+        details_layout.setAlignment(Qt.AlignLeft)
+        details_layout.addWidget(QLabel("Name:"))
+        details_layout.addWidget(self.name_lbl)
+        details_layout.addWidget(QLabel("NIA:"))
+        details_layout.addWidget(self.nia_lbl)
+        details_layout.addWidget(QLabel("Group:"))
+        details_layout.addWidget(self.group_lbl)
+
+        self.main_layout.addLayout(details_layout)
         self.main_layout.addWidget(self.splitter)
 
         self.rubrics_tabs = QTabWidget()
+        helper = QWidget()
+        helper.setLayout(QVBoxLayout())
+        self.scores_layout = QFormLayout()
+        helper.layout().addLayout(self.scores_layout)
+        helper.layout().addWidget(self.rubrics_tabs)
+
+        self.quiz_score_lbl = QLabel("0")
+        self.total_score_lbl = QLabel("0")
+        self.quiz_cb = QCheckBox("Quiz")
+        self.quiz_cb.setChecked(True)
+        self.quiz_cb.stateChanged.connect(self.score_checkbox_changed)
+        self.scores_layout.addRow(self.quiz_cb, self.quiz_score_lbl)
+        self.scores_layout.addRow("Total: ", self.total_score_lbl)
 
         self.splitter.addWidget(self.pdf_tree)
         self.splitter.addWidget(self.swik)
-        self.splitter.addWidget(self.rubrics_tabs)
+        self.splitter.addWidget(helper)
 
         self.setWindowTitle("QR Grader")
 
+        self.load_tables()
+
         self.load_detected()
-        self.load_questions()
         self.load_schemas()
 
         self.populate_pdf_tree()
-
         self.pdf_tree.currentItemChanged.connect(self.pdf_tree_selection_changed)
+        if self.pdf_tree.topLevelItemCount() > 0:
+            self.pdf_tree.setCurrentItem(self.pdf_tree.topLevelItem(0))
         self.show()
 
     def load_detected(self):
         self.detected.load(self.dir_data + "detected.csv")
 
+    def load_tables(self):
 
-    def load_questions(self):
-        self.questions = Questions(self.dir_xls)
-        if not self.questions.load():
+        if not self.xls_questions.load():
             print("ERROR: questions file nos present")
             sys.exit(1)
 
+        if not self.xls_nia.load():
+            print("ERROR: questions file nos present")
+            sys.exit(1)
+
+        if not self.xls_data.load():
+            print("ERROR: questions file nos present")
+            sys.exit(1)
 
     def load_schemas(self):
-        r1 = DraggableList(0, "rubric1.scm")
-        r1.score_changed.connect(self.rubric_score_changed)
-        r2 = DraggableList(0, "rubric2.scm")
-        r2.score_changed.connect(self.rubric_score_changed)
-        self.rubrics_tabs.addTab(r1, "Rubric 1")
-        self.rubrics_tabs.addTab(r2, "Rubric 2")
-        self.rubrics.extend([r1, r2])
+        for i in range(2):
+            name = "Rubric " + str(i + 1)
+            r1 = DraggableList(0, "rubric" + str(i + 1) + ".scm")
+            r1.score_changed.connect(self.rubric_score_changed)
+            self.rubrics_tabs.addTab(r1, name)
+            self.rubrics.append(r1)
+
+            label = QLabel("0")
+            rubric_cb = QCheckBox(name + ":")
+            rubric_cb.setChecked(True)
+            rubric_cb.stateChanged.connect(self.score_checkbox_changed)
+
+            self.rubrics_labels.append(label)
+            self.rubrics_cb.append(rubric_cb)
+
+            self.scores_layout.insertRow(1, rubric_cb, label)
+
+    def score_checkbox_changed(self, state):
+        self.update_all_pdf_tree_scores()
 
     def rubric_score_changed(self, rubric, exam_id):
-        rubric.compute_score(exam_id)
+        self.update_scores_layout()
+        self.update_pdf_tree_score()
 
+    def update_scores_layout(self):
+        quiz_score = self.get_quiz_score(self.current_exam)
+        self.quiz_score_lbl.setText(str(quiz_score))
+
+        final = 0
+        for index, r in enumerate(self.rubrics):
+            value = r.compute_score(self.current_exam)
+            self.rubrics_labels[index].setText(str(value))
+            final += value
+
+        self.total_score_lbl.setText(str(final + quiz_score))
+        return final
 
     def pdf_tree_selection_changed(self, current, previous):
         self.current_exam = int(current.text(0))
@@ -107,18 +183,34 @@ class MainWindow(QMainWindow):
         current = int(current.text(0)) if current is not None else None
         previous = int(previous.text(0)) if previous is not None else None
 
+        nia = self.xls_nia.get_nia(current)
+        self.nia_lbl.setText(str(nia))
+        self.name_lbl.setText(self.xls_data.get_name(nia))
+        self.group_lbl.setText(str(self.xls_data.get_group(nia)))
+
         for rubric in self.rubrics:
             rubric.exam_changed(current, previous)
 
+        self.update_scores_layout()
+
+        for index in range(self.pdf_tree.topLevelItemCount()):
+            item = self.pdf_tree.topLevelItem(index)
+            exam_id = int(item.text(0))
+            if len(self.get_multiple_marks(exam_id)) > 0:
+                item.setForeground(0, Qt.red)
+            else:
+                item.setForeground(0, Qt.black)
+
     def populate_pdf_tree(self):
         files = os.listdir(self.dir_publish)
-        files = sorted([f.replace(".pdf","") for f in files if f.endswith(".pdf") and f.replace(".pdf","").isdigit()])
+        files = sorted([f.replace(".pdf", "") for f in files if f.endswith(".pdf") and f.replace(".pdf", "").isdigit()])
 
         for f in files:
-            exam_id = int(f)%1000
-            score = self.get_quiz_score(exam_id)
+            score = self.get_quiz_score(int(f))
             item = QTreeWidgetItem([f, str(score)])
             self.pdf_tree.addTopLevelItem(item)
+
+        self.update_all_pdf_tree_scores()
 
     def process_exam(self):
         marks = [x for x in self.swik.view.items() if isinstance(x, Mark)]
@@ -130,7 +222,7 @@ class MainWindow(QMainWindow):
         marks = {}
         for index in range(self.swik.renderer.get_document_length()):
             exam_id = self.current_exam % 1000
-            page_codes = self.detected.select(exam=exam_id, pdf_page=index+1)
+            page_codes = self.detected.select(exam=exam_id, pdf_page=index + 1)
             type_a = page_codes.select(type=Code.TYPE_A)
             for code in type_a:
                 r = Mark(code)
@@ -138,7 +230,7 @@ class MainWindow(QMainWindow):
                 r.setParentItem(self.swik.view.get_page(index))
                 marks[code] = r
                 if code.marked:
-                    if self.questions.get_value(code.question, code.answer)>0:
+                    if self.xls_questions.get_value(code.question, code.answer) > 0:
                         r.setPen(QPen(Qt.green, 2))
                     else:
                         r.setPen(QPen(Qt.red, 2))
@@ -155,38 +247,57 @@ class MainWindow(QMainWindow):
         for answer in yellow:
             marks[answer].setPen(QPen(Qt.yellow, 2))
 
-    def update_all_quiz_scores(self):
+    def get_full_score(self, exam_id):
+        total = 0
+        for index, r in enumerate(self.rubrics):
+            if self.rubrics_cb[index].isChecked():
+                total += r.compute_score(exam_id)
+        if self.quiz_cb.isChecked():
+            total += self.get_quiz_score(exam_id)
+
+        return total
+
+    def update_all_pdf_tree_scores(self):
         for index in range(self.pdf_tree.topLevelItemCount()):
             item = self.pdf_tree.topLevelItem(index)
-            exam_id = int(item.text(0)) % 1000
-            score = self.get_quiz_score(exam_id)
+            score = self.get_full_score(int(item.text(0)))
             item.setText(1, str(score))
+
+    def update_pdf_tree_score(self):
+        for index in range(self.pdf_tree.topLevelItemCount()):
+            item = self.pdf_tree.topLevelItem(index)
+            if int(item.text(0)) == self.current_exam:
+                score = self.get_full_score(self.current_exam)
+                item.setText(1, str(score))
+                break
 
     def get_quiz_score(self, exam_id):
         score = 0
-        exam_codes = self.detected.select(exam=exam_id, type=Code.TYPE_A)
+        exam_codes = self.detected.select(exam=exam_id % 1000, type=Code.TYPE_A)
         for code in exam_codes:
             if code.marked:
-                score += self.questions.get_value(code.question, code.answer)
+                score += self.xls_questions.get_value(code.question, code.answer)
         return score
 
     def get_multiple_marks(self, exam_id):
         yellow = []
-        for index in range(self.swik.renderer.get_document_length()):
-            type_a = self.detected.select(exam=exam_id, pdf_page=index+1, type=Code.TYPE_A)
-            for question in type_a.get_questions():
-                answers = type_a.select(question=question)
-                marked = sum([1 for x in answers if x.marked])
-                if marked > 1:
-                    for answer in answers:
-                        if answer.marked:
-                            yellow.append(answer)
+        exam_id = exam_id % 1000
+        type_a = self.detected.select(exam=exam_id, type=Code.TYPE_A)
+        for question in type_a.get_questions():
+            answers = type_a.select(question=question)
+            marked = sum([1 for x in answers if x.marked])
+            if marked > 1:
+                for answer in answers:
+                    if answer.marked:
+                        yellow.append(answer)
         return yellow
 
     def code_clicked(self, code):
         code.marked = not code.marked
         self.process_exam()
-        self.update_all_quiz_scores()
+        # self.update_all_quiz_scores()
+        self.update_scores_layout()
+        self.update_pdf_tree_score()
 
 
 if __name__ == "__main__":
