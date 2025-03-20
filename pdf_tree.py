@@ -18,6 +18,7 @@ class PDFTree(QTreeWidget):
     def __init__(self):
         super().__init__()
 
+        self.enabled = True
         self.setHeaderLabels(["#", "Exam Id", "!", "Score"])
         self.setSortingEnabled(True)
         self.setHeader(MyTreeHeader(Qt.Horizontal, self))
@@ -27,6 +28,7 @@ class PDFTree(QTreeWidget):
         self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.header().sortIndicatorChanged.connect(self.sort)
+        self.setMaximumWidth(180)
 
     def sort(self, index, order):
         if index > 0:
@@ -44,3 +46,18 @@ class PDFTree(QTreeWidget):
         super().addTopLevelItem(item)
         self.sortByColumn(1, Qt.AscendingOrder)
         self.renumber()
+
+    def keyPressEvent(self, event):
+        if self.enabled:
+            super().keyPressEvent(event)
+        else:
+            event.ignore()
+
+    def mousePressEvent(self, event):
+        if self.enabled:
+            super().mousePressEvent(event)
+        else:
+            event.ignore()
+
+    def set_enabled(self, value):
+        self.enabled = value

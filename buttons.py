@@ -13,79 +13,73 @@ class Button(QWidget):
 
 
 class Shortcut(Button):
-
     clicked = pyqtSignal()
 
     def __init__(self, name, **kwargs):
         super().__init__(name)
         self.button = QPushButton(name)
-        self.button.clicked.connect(self.clicked.emit) # type: ignore
+        self.button.clicked.connect(self.clicked.emit)  # type: ignore
         self.buttons = kwargs.get("buttons", [])
+        self.set_color(kwargs.get("color", "#FF0000"))
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self.button)
         font = self.button.font()
         font.setItalic(True)
         self.button.setFont(font)
 
+    def set_color(self, color):
+        self.setStyleSheet('background-color:' + color)
 
     def get_buttons(self):
         return self.buttons
 
     def get_config(self):
-        return {"type":"shortcut", "buttons": self.buttons}
+        return {"type": "shortcut", "buttons": self.buttons, "color": self.styleSheet().split(":")[1]}
 
 
 class StateButton(Button):
     pass
 
+
 class TextButton(StateButton):
+    clicked = pyqtSignal()
 
-        clicked = pyqtSignal()
+    def __init__(self, name, **kwargs):
+        super().__init__(name)
+        self.button = QTextEdit(name)
+        self.button.setMinimumWidth(10)
+        self.setMinimumWidth(10)
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(QLabel(name))
+        self.layout().addWidget(self.button)
 
-        def __init__(self, name, **kwargs):
-            super().__init__(name)
-            self.button = QTextEdit(name)
-            self.button.setMinimumWidth(10)
-            self.setMinimumWidth(10)
-            self.setLayout(QVBoxLayout())
-            self.layout().addWidget(QLabel(name))
-            self.layout().addWidget(self.button)
+    def get_config(self):
+        return {"type": "text"}
 
-        def get_config(self):
-            return {"type":"text"}
+    def get_state(self):
+        return {"text": self.button.toPlainText()}
 
-        def get_state(self):
-            return {"text":self.button.toPlainText()}
-
-        def set_state(self, state):
-            print("kkkkkkkkkkkkkk", state)
-            self.button.setText(state.get("text", ""))
+    def set_state(self, state):
+        self.button.setText(state.get("text", ""))
 
 
 class StepButton(StateButton):
-
     score_changed = pyqtSignal()
 
     def __init__(self, name, **kwargs):
         super().__init__(name)
 
-        self.config = {"weight": 1, "full_value": 1,
-                       "steps": 0, "color": None,
-                       "comment": "", "start_with": 100,
-                       "click_next": False, "type":"button"}
-
-        self.config.update(kwargs)
-
-        self.weight = self.config.get('weight', 1)
-        self.full_value = self.config.get('full_value', 1)
-        self.n_steps = self.config.get('steps', 0)
-        color = self.config.get("color", None)
+        self.weight = kwargs.get('weight', 1)
+        self.full_value = kwargs.get('full_value', 1)
+        self.n_steps = kwargs.get('steps', 0)
+        color = kwargs.get("color", None)
+        self.click_next = kwargs.get("click_next", False)
 
         self.comment = None
         self.step = int(100 / self.n_steps) if self.n_steps > 0 else 100
 
         layout = QHBoxLayout()
-        #layout.setContentsMargins(15, 5, 15, 5)
+        # layout.setContentsMargins(15, 5, 15, 5)
 
         self.button = QPushButton(name)
         self.button.setMinimumWidth(10)
@@ -101,7 +95,7 @@ class StepButton(StateButton):
         self.spinner.setSingleStep(self.step)
         self.spinner.setMaximum(100)
         self.spinner.setMaximumWidth(50)
-        self.spinner.valueChanged.connect(self.score_changed.emit) # type: ignore
+        self.spinner.valueChanged.connect(self.score_changed.emit)  # type: ignore
 
         layout.addWidget(self.button)
         self.comment_lbl = QLabel(self.button)
@@ -119,8 +113,18 @@ class StepButton(StateButton):
 
         self.setLayout(layout)
 
+    def get_color(self):
+        return self.button.styleSheet().split(":")[1].strip()
+
     def get_config(self):
-        return self.config
+        return {"type": "button", "steps": self.n_steps, "weight": self.weight, "full_value": self.full_value,
+                "color": self.get_color(), "comment": self.comment, "start_with": self.start_with,
+                "click_next": self.click_next}
+
+    # kwargs = {"weight": 1, "full_value": 1,
+    #                "steps": 0, "color": None,
+    #                "comment": "", "start_with": 100,
+    #                "click_next": False, "type": "button"}
 
     def toggle_show_points(self):
         self.points_lb.setVisible(not self.points_lb.isVisible())
@@ -137,7 +141,7 @@ class StepButton(StateButton):
         else:
             value = -1
 
-        return  {"value": value, "comment": self.comment}
+        return {"value": value, "comment": self.comment}
 
     def get_xls_value(self):
         state = self.get_state()
@@ -145,14 +149,14 @@ class StepButton(StateButton):
         if value == -1:
             return " "
         else:
-            return value/100
+            return value / 100
 
     def get_value(self):
         if self.is_checked():
             if self.n_steps == 0:
                 return self.get_full_value()
             else:
-                return float(self.spinner.value()/100.0)*self.get_full_value()
+                return float(self.spinner.value() / 100.0) * self.get_full_value()
         else:
             return None
 
@@ -169,7 +173,7 @@ class StepButton(StateButton):
         font.setBold(self.button.isChecked())
         self.button.setFont(font)
 
-        self.score_changed.emit() # type: ignore
+        self.score_changed.emit()  # type: ignore
 
     def set_state(self, state):
         self.set_comment(state.get("comment", ""))
@@ -189,7 +193,7 @@ class StepButton(StateButton):
         font.setBold(self.button.isChecked())
         self.button.setFont(font)
 
-        self.score_changed.emit() # type: ignore
+        self.score_changed.emit()  # type: ignore
 
     def set_comment(self, text):
         self.comment_lbl.setVisible(text != "")

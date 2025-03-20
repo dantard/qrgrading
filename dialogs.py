@@ -1,6 +1,6 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QLineEdit, QPushButton, QSpinBox, QDialog, QDialogButtonBox, QComboBox, QDoubleSpinBox)
+from PyQt5.QtWidgets import (QLineEdit, QPushButton, QSpinBox, QDialog, QDialogButtonBox, QComboBox, QDoubleSpinBox, QFormLayout)
 
 from widget_utils import WidgetsRow, VBox
 
@@ -16,8 +16,8 @@ class ButtonEditDialog(QDialog):
 
         dialog_ok_cancel_btn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         self.buttonBox = QDialogButtonBox(dialog_ok_cancel_btn)
-        self.buttonBox.accepted.connect(self.accept) # type: ignore
-        self.buttonBox.rejected.connect(self.reject) # type: ignore
+        self.buttonBox.accepted.connect(self.accept)  # type: ignore
+        self.buttonBox.rejected.connect(self.reject)  # type: ignore
         self.buttonBox.buttons()[0].setEnabled(False)
 
         self.layout = VBox()
@@ -29,11 +29,11 @@ class ButtonEditDialog(QDialog):
         self.layout.addWidget(WidgetsRow("Type", self.combo))
 
         self.le = QLineEdit()
-        self.le.textChanged.connect(lambda: self.buttonBox.buttons()[0].setEnabled(self.le.text() != "")) # type: ignore
+        self.le.textChanged.connect(lambda: self.buttonBox.buttons()[0].setEnabled(self.le.text() != ""))  # type: ignore
         self.le.setText(button.get_name() if button is not None else "")
         self.layout.addWidget(WidgetsRow("Name", self.le))
 
-        #self.value = QComboBox()
+        # self.value = QComboBox()
         self.value = QDoubleSpinBox()
         self.value.setDecimals(1)
         self.value.setMinimum(-20)
@@ -41,7 +41,7 @@ class ButtonEditDialog(QDialog):
         self.value.setValue(float(schema.get('value', 1)))
         self.value.setSingleStep(0.5)
 
-        #self.fill_cb(schema.get("type", 'button'), schema.get('value', 1))
+        # self.fill_cb(schema.get("type", 'button'), schema.get('value', 1))
         self.layout.addWidget(WidgetsRow("Value", self.value))
 
         self.steps = QSpinBox()
@@ -61,7 +61,7 @@ class ButtonEditDialog(QDialog):
         # Show the current color and a color picker button
         self.color = QColor(schema.get('color', "#D4D4D4"))
         self.colorButton = QPushButton('Choose color')
-        self.colorButton.clicked.connect(self.pick_color) # type: ignore
+        self.colorButton.clicked.connect(self.pick_color)  # type: ignore
         self.layout.addWidget(WidgetsRow('Color', self.colorButton))
         self.colorButton.setStyleSheet(f'background-color: {schema.get("color", "#D4D4D4")}')
 
@@ -70,14 +70,13 @@ class ButtonEditDialog(QDialog):
 
         self.enable_widgets()
 
-
     def cb_changed(self, text):
-#        self.fill_cb(self.combo.currentText(), 1)
+        #        self.fill_cb(self.combo.currentText(), 1)
         self.enable_widgets()
 
     def enable_widgets(self):
         b = self.combo.currentText() in ['button']
-        bm =  self.combo.currentText() in ['button', 'multiplier']
+        bm = self.combo.currentText() in ['button', 'multiplier']
         bmc = self.combo.currentText() in ['button', 'multiplier', 'cutter']
 
         self.layout.widgets['Value'].setVisible(bmc)
@@ -86,7 +85,6 @@ class ButtonEditDialog(QDialog):
         self.layout.widgets['Color'].setVisible(bmc)
 
         self.adjustSize()
-
 
     def pick_color(self, button):
         color = QtWidgets.QColorDialog.getColor()
@@ -108,6 +106,43 @@ class ButtonEditDialog(QDialog):
         if self.combo.currentText() in ['button']:
             res['weight'] = float(self.weight.value())
             res['value'] = float(self.value.value())
-            res['start_with'] = 77
 
         return self.le.text(), self.combo.currentText(), res
+
+
+class RubricEditDialog(QDialog):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.setWindowTitle("Edit")
+
+        dialog_ok_cancel_btn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        self.buttonBox = QDialogButtonBox(dialog_ok_cancel_btn)
+        self.buttonBox.accepted.connect(self.accept)  # type: ignore
+        self.buttonBox.rejected.connect(self.reject)  # type: ignore
+        self.buttonBox.buttons()[0].setEnabled(False)
+
+        self.layout = QFormLayout()
+        self.setLayout(self.layout)
+
+        self.combo = QLineEdit()
+        self.combo.setValidator(QtGui.QIntValidator(1, 99))
+        self.layout.addRow("Page", self.combo)
+        self.combo.setText(str(self.config.get("page", 1)))
+
+        self.le = QLineEdit()
+
+        # limit to 1 decimal
+        self.le.setValidator(QtGui.QDoubleValidator(0, 10, 1))
+
+        self.le.textChanged.connect(lambda: self.buttonBox.buttons()[0].setEnabled(self.le.text() != ""))  # type: ignore
+        self.le.setText(str(self.config.get("weight", 10)))
+        self.layout.addRow("Weight", self.le)
+
+        self.layout.addWidget(self.buttonBox)
+
+    # if accepted, modify the config
+    def accept(self):
+        self.config["weight"] = float(self.le.text())
+        self.config["page"] = int(self.combo.text())
+        super().accept()

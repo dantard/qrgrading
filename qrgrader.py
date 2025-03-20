@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication
 from code import Code
 from code_set import CodeSet
 from common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
-from draggable_list import DraggableList
+from rubric import Rubric
 from pdf_tree import PDFTree
 
 
@@ -66,6 +66,7 @@ class MainWindow(QMainWindow):
         self.pdf_tree = PDFTree()
         self.pdf_tree.setColumnCount(4)
         self.swik = SwikBasicWidget()
+        self.swik.view.document_ready.connect(self.load_finished)
         self.splitter = QSplitter()
 
         # Prepare Details layout
@@ -145,7 +146,7 @@ class MainWindow(QMainWindow):
     def load_schemas(self):
         for filename in self.rubrics_files:
             name = os.path.basename(filename).replace(".scm", "")
-            r1 = DraggableList(0, filename)
+            r1 = Rubric(filename, self.dir_xls)
             r1.score_changed.connect(self.rubric_score_changed)
             self.rubrics_tabs.addTab(r1, name)
             self.rubrics.append(r1)
@@ -164,6 +165,7 @@ class MainWindow(QMainWindow):
         self.update_all_pdf_tree_scores()
 
     def rubric_score_changed(self, rubric, exam_id):
+        print("kjlkjlkj")
         self.update_scores_layout()
         self.update_pdf_tree_score()
 
@@ -181,22 +183,30 @@ class MainWindow(QMainWindow):
         return final
 
     def pdf_tree_selection_changed(self, current, previous):
+
+        self.pdf_tree.set_enabled(False)
+        if previous is not None:
+            for rubric in self.rubrics:
+                rubric.push(int(previous.text(1)))
+
         self.current_exam = int(current.text(1))
-        filename = self.dir_publish + current.text(1) + ".pdf"
-        self.swik.open(filename)
+
+        ratio = self.swik.view.get_ratio()
+        rubric = self.rubrics_tabs.currentWidget()
+
+        self.swik.open(f"{self.dir_publish}{self.current_exam}.pdf", ratio=ratio, index=rubric.get_page())
+
+    def load_finished(self):
 
         self.process_exam()
 
-        current = int(current.text(1)) if current is not None else None
-        previous = int(previous.text(1)) if previous is not None else None
-
-        nia = self.xls_nia.get_nia(current)
+        nia = self.xls_nia.get_nia(self.current_exam)
         self.nia_lbl.setText(str(nia))
         self.name_lbl.setText(self.xls_data.get_name(nia))
         self.group_lbl.setText(str(self.xls_data.get_group(nia)))
 
         for rubric in self.rubrics:
-            rubric.exam_changed(current, previous)
+            rubric.pull(self.current_exam)
 
         self.update_scores_layout()
 
@@ -207,6 +217,8 @@ class MainWindow(QMainWindow):
                 item.setText(2, "!")
             else:
                 item.setText(2, "")
+
+        self.pdf_tree.set_enabled(True)
 
     def populate_pdf_tree(self):
         files = os.listdir(self.dir_publish)
@@ -302,7 +314,6 @@ class MainWindow(QMainWindow):
     def code_clicked(self, code):
         code.marked = not code.marked
         self.process_exam()
-        # self.update_all_quiz_scores()
         self.update_scores_layout()
         self.update_pdf_tree_score()
 
@@ -320,21 +331,23 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--create', help="Create schema if doesn't exist", action="store_true")
     args = vars(parser.parse_args())
 
+    filenames = []
     for schema in args["schema"]:
         if schema.endswith(".yaml"):
             print("WARNING: schema MUST NOT be a yaml file.")
             sys.exit(1)
 
-        schema = schema.replace(".scm", "") + ".scm"
+        filename = schema.replace(".scm", "") + ".scm"
 
-        if not os.path.exists(schema):
+        if not os.path.exists(filename):
             if args["create"]:
-                print("Creating schema", schema)
-                with open(schema, "w") as f:
+                print("Creating schema", filename)
+                with open(filename, "w") as f:
                     f.write("{}\n")
             else:
-                print(f"ERROR: schema {schema} not found")
+                print(f"ERROR: schema {filename} not found")
                 sys.exit(1)
+        filenames.append(filename)
 
-    main = MainWindow(args["schema"])
+    main = MainWindow(filenames)
     sys.exit(app.exec_())
