@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget, QLabel, QVBoxLayout, \
     QSizePolicy, QLayout, QFormLayout, QCheckBox
+
 from swikv4.widgets.swik_basic_widget import SwikBasicWidget
 import sys
 from PyQt5.QtWidgets import QApplication
@@ -36,20 +37,15 @@ class Mark(QGraphicsRectItem):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, schema_filenames):
         super().__init__()
-
-        parser = argparse.ArgumentParser(description='qrgrader.py')
-        parser.add_argument('-s', '--schema', help='Schema to be used', default=None, action="append")
-        parser.add_argument('-c', '--create', help="Create schema if doesn't exist", action="store_true")
-        args = vars(parser.parse_args())
 
         self.current_exam = None
         self.detected = CodeSet()
 
         # Rubrics
         self.rubrics = []
-        self.rubrics_files = args["schema"]
+        self.rubrics_files = schema_filenames
         self.rubrics_labels = []
         self.rubrics_cb = []
 
@@ -147,9 +143,9 @@ class MainWindow(QMainWindow):
             sys.exit(1)
 
     def load_schemas(self):
-        for i in range(2):
-            name = "Rubric " + str(i + 1)
-            r1 = DraggableList(0, "rubric" + str(i + 1) + ".scm")
+        for filename in self.rubrics_files:
+            name = os.path.basename(filename).replace(".scm", "")
+            r1 = DraggableList(0, filename)
             r1.score_changed.connect(self.rubric_score_changed)
             self.rubrics_tabs.addTab(r1, name)
             self.rubrics.append(r1)
@@ -319,5 +315,26 @@ if __name__ == "__main__":
         print("ERROR: qrgrader must be run from the workspace root")
         sys.exit(1)
 
-    main = MainWindow()
+    parser = argparse.ArgumentParser(description='qrgrader.py')
+    parser.add_argument('-s', '--schema', help='Schema to be used', default=[], action="append")
+    parser.add_argument('-c', '--create', help="Create schema if doesn't exist", action="store_true")
+    args = vars(parser.parse_args())
+
+    for schema in args["schema"]:
+        if schema.endswith(".yaml"):
+            print("WARNING: schema MUST NOT be a yaml file.")
+            sys.exit(1)
+
+        schema = schema.replace(".scm", "") + ".scm"
+
+        if not os.path.exists(schema):
+            if args["create"]:
+                print("Creating schema", schema)
+                with open(schema, "w") as f:
+                    f.write("{}\n")
+            else:
+                print(f"ERROR: schema {schema} not found")
+                sys.exit(1)
+
+    main = MainWindow(args["schema"])
     sys.exit(app.exec_())
