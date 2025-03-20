@@ -145,6 +145,24 @@ To use the graphical user interface, run the following command from within the w
 qrgrader
 ```
 
+The graphical user interface will open as follows:
+![img.png](images/img_1.png)
+
+On the left side the exam number is shown, and the PDF file is displayed on the right side.
+The marked answers are shown in green and red. When a question has two marks,
+both answers are shown in yellow. Double-clicking on the answer will unmark it.
+
+### Annotating the exams
+
+Once all the double marks have been removed, the exams can be annotated to show
+the correctly and incorrecly marked answers. To do this, run the following command:
+
+```bash
+qrscanner -a
+```
+
+This will annotate the PDF files in the `results/pdf` directory with the correct and incorrect answers.
+
 ### CSV files format details
 
 The `raw.csv` file has the following format:
