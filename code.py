@@ -1,4 +1,3 @@
-
 class Code:
     TYPE_A = 0
     TYPE_P = 1
@@ -88,11 +87,11 @@ class Code:
 
     def __repr__(self):
         if self.type == self.TYPE_A:
-            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, Q:{self.question}, A:{self.answer}), M:{self.marked}"
+            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page}, Q:{self.question}, A:{self.answer}), M:{self.marked}"
         elif self.type in [self.TYPE_P, self.TYPE_Q]:
             return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page})"
         elif self.type == self.TYPE_N:
-            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, NUM:{self.number})"
+            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page}, NUM:{self.number})"
 
     permut = [[5, 6, 7, 8],
               [5, 6, 8, 7],

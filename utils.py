@@ -1,5 +1,6 @@
 import math
 import os
+import shutil
 
 import cv2
 import numpy as np
@@ -15,6 +16,7 @@ def pix2np(pix):
     im = np.ascontiguousarray(im[..., [2, 1, 0]])  # rgb to bgr
     return im
 
+
 def threshold(orig, th):
     if th == 0:
         img = orig.copy()
@@ -26,8 +28,8 @@ def threshold(orig, th):
 
     return thresh
 
-def get_patches(orig, ppm, size_mm, tolerance=0.25):
 
+def get_patches(orig, ppm, size_mm, tolerance=0.25):
     # List for the patches
     patches = []
 
@@ -60,6 +62,7 @@ def get_patches(orig, ppm, size_mm, tolerance=0.25):
                 patches.append((x - a, y - a, w + 2 * a, h + 2 * a))
 
     return patches
+
 
 def get_codes(patch):
     codes = set()
@@ -104,3 +107,11 @@ def compute_similarity_transform(p11, p12, p21, p22):
 
     return s, R, T
 
+
+def makedir(path, clear=False):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        if clear:
+            shutil.rmtree(path)
+            os.makedirs(path)

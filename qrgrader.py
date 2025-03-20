@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import pandas
@@ -13,6 +14,7 @@ from code import Code
 from code_set import CodeSet
 from common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
 from draggable_list import DraggableList
+from pdf_tree import PDFTree
 
 
 class Mark(QGraphicsRectItem):
@@ -37,9 +39,17 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        parser = argparse.ArgumentParser(description='qrgrader.py')
+        parser.add_argument('-s', '--schema', help='Schema to be used', default=None, action="append")
+        parser.add_argument('-c', '--create', help="Create schema if doesn't exist", action="store_true")
+        args = vars(parser.parse_args())
+
         self.current_exam = None
         self.detected = CodeSet()
+
+        # Rubrics
         self.rubrics = []
+        self.rubrics_files = args["schema"]
         self.rubrics_labels = []
         self.rubrics_cb = []
 
@@ -47,7 +57,7 @@ class MainWindow(QMainWindow):
          self.dir_data,
          self.dir_scanned, _,
          self.dir_xls,
-         self.dir_publish) = get_workspace_paths(os.getcwd())
+         self.dir_publish, _) = get_workspace_paths(os.getcwd())
 
         self.xls_questions = Questions(self.dir_xls)
         self.xls_nia = Nia(self.dir_xls)
@@ -57,7 +67,7 @@ class MainWindow(QMainWindow):
         self.main_layout = QVBoxLayout()
         self.central_widget.setLayout(self.main_layout)
         self.setCentralWidget(self.central_widget)
-        self.pdf_tree = QTreeWidget()
+        self.pdf_tree = PDFTree()
         self.pdf_tree.setColumnCount(4)
         self.swik = SwikBasicWidget()
         self.splitter = QSplitter()
@@ -175,13 +185,14 @@ class MainWindow(QMainWindow):
         return final
 
     def pdf_tree_selection_changed(self, current, previous):
-        self.current_exam = int(current.text(0))
-        filename = self.dir_publish + current.text(0) + ".pdf"
+        self.current_exam = int(current.text(1))
+        filename = self.dir_publish + current.text(1) + ".pdf"
         self.swik.open(filename)
+
         self.process_exam()
 
-        current = int(current.text(0)) if current is not None else None
-        previous = int(previous.text(0)) if previous is not None else None
+        current = int(current.text(1)) if current is not None else None
+        previous = int(previous.text(1)) if previous is not None else None
 
         nia = self.xls_nia.get_nia(current)
         self.nia_lbl.setText(str(nia))
@@ -195,11 +206,11 @@ class MainWindow(QMainWindow):
 
         for index in range(self.pdf_tree.topLevelItemCount()):
             item = self.pdf_tree.topLevelItem(index)
-            exam_id = int(item.text(0))
+            exam_id = int(item.text(1))
             if len(self.get_multiple_marks(exam_id)) > 0:
-                item.setForeground(0, Qt.red)
+                item.setText(2, "!")
             else:
-                item.setForeground(0, Qt.black)
+                item.setText(2, "")
 
     def populate_pdf_tree(self):
         files = os.listdir(self.dir_publish)
@@ -207,7 +218,7 @@ class MainWindow(QMainWindow):
 
         for f in files:
             score = self.get_quiz_score(int(f))
-            item = QTreeWidgetItem([f, str(score)])
+            item = QTreeWidgetItem(["", f, str(score)])
             self.pdf_tree.addTopLevelItem(item)
 
         self.update_all_pdf_tree_scores()
@@ -260,15 +271,15 @@ class MainWindow(QMainWindow):
     def update_all_pdf_tree_scores(self):
         for index in range(self.pdf_tree.topLevelItemCount()):
             item = self.pdf_tree.topLevelItem(index)
-            score = self.get_full_score(int(item.text(0)))
-            item.setText(1, str(score))
+            score = self.get_full_score(int(item.text(1)))
+            item.setText(3, str(score))
 
     def update_pdf_tree_score(self):
         for index in range(self.pdf_tree.topLevelItemCount()):
             item = self.pdf_tree.topLevelItem(index)
-            if int(item.text(0)) == self.current_exam:
+            if int(item.text(1)) == self.current_exam:
                 score = self.get_full_score(self.current_exam)
-                item.setText(1, str(score))
+                item.setText(3, str(score))
                 break
 
     def get_quiz_score(self, exam_id):

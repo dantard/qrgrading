@@ -13,20 +13,29 @@ def get_workspace_paths(base):
     dir_generated = dir_workspace + "generated" + os.sep
     dir_xls = dir_workspace + "results" + os.sep + "xls" + os.sep
     dir_publish = dir_workspace + "results" + os.sep + "pdf" + os.sep
-    return dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish
+    dir_source = dir_workspace + "source" + os.sep
+    return dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish, dir_source
 
 
-def get_temp_paths(base):
-    dir_pool = base + os.sep + "pool" + os.sep
-    dir_images = dir_pool + os.sep + "images" + os.sep
-    return dir_pool, dir_images
+def get_temp_paths(date, base):
+    dir_scanner = base + os.sep + "__qrgrading__" + date + os.sep + "scanner" + os.sep
+    dir_generator = base + os.sep + "__qgrading__" + date + os.sep + "generator" + os.sep
+    return dir_scanner, dir_generator
+
+
+def get_date():
+    if not check_workspace():
+        raise Exception("get_date must be used from within a workspace directory")
+
+    date = os.getcwd().split("-")[1].strip("/")
+    return date
 
 
 def check_workspace():
     current_dir = os.getcwd()
     dir_name = os.path.basename(current_dir)
     name = dir_name.split("-")
-    if len(name) != 2 or name[0] != "qrgrading" or len(name[1]) != 8 or not name[1].isdigit():
+    if len(name) != 2 or name[0] != "qrgrading" or len(name[1]) != 6 or not name[1].isdigit():
         return False
     return True
 
