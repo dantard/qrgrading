@@ -21,4 +21,4 @@ if __name__ == '__main__':
         if not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
-    print(f"Workspace 'qrgrading-{args["date"]}' created successfully.")
+    print(f"Workspace qrgrading-{args['date']} created successfully.")
