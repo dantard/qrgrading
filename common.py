@@ -128,3 +128,14 @@ class Nia:
             return None
 
         return by_nia.iloc[0]["EXAM"]
+
+def get_narrowest_type(cell):
+    try:
+        res = int(cell)
+    except ValueError:
+        try:
+            res = float(cell)
+        except ValueError:
+            res = str(cell)
+
+    return res

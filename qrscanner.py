@@ -140,13 +140,14 @@ if __name__ == '__main__':
             codes.extend(detected)
             codes.save(dir_data + "detected.csv")
 
-    codes = CodeSet()
-    if not codes.load(dir_data + "detected.csv"):
-        print("ERROR: detected.csv not found")
-        sys.exit(1)
+    if args.get("reconstruct") or args.get("nia") or args.get("raw") or args.get("annotate"):
+        codes = CodeSet()
+        if not codes.load(dir_data + "detected.csv"):
+            print("ERROR: detected.csv not found")
+            sys.exit(1)
 
-    exams = codes.get_exams()
-    date = codes.get_date()
+        exams = codes.get_exams()
+        date = codes.get_date()
 
     if args.get("reconstruct"):
         print("Reconstructing exams")
@@ -180,11 +181,11 @@ if __name__ == '__main__':
         print("Creating RAW xls file")
         with open(dir_xls + "raw.csv", "w") as f:
             for exam in exams:
-                line = f"{date},{exam}"
+                line = f"{date}\t{exam}"
                 for question in codes.get_questions():
                     for answer in codes.get_answers():
                         result = codes.first(exam=exam, type=Code.TYPE_A, question=question, answer=answer)
-                        line += ",1" if result is None or result.marked else ",0"
+                        line += "\t1" if result is None or result.marked else "\t0"
 
                 f.write(line + "\n")
 
