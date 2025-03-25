@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QLineEdit, QPushButton, QSpinBox, QDialog, QDialogButtonBox, QComboBox, QDoubleSpinBox, QFormLayout)
+from PyQt5.QtWidgets import (QLineEdit, QPushButton, QSpinBox, QDialog, QDialogButtonBox, QComboBox, QDoubleSpinBox, QFormLayout, QCheckBox)
 
 from widget_utils import WidgetsRow, VBox
 
@@ -38,8 +39,9 @@ class ButtonEditDialog(QDialog):
         self.value.setDecimals(1)
         self.value.setMinimum(-20)
         self.value.setMaximum(20)
-        self.value.setValue(float(schema.get('value', 1)))
+        self.value.setValue(float(schema.get('full_value', 1)))
         self.value.setSingleStep(0.5)
+        self.value.valueChanged.connect(self.spin_value_changed)  # type: ignore
 
         # self.fill_cb(schema.get("type", 'button'), schema.get('value', 1))
         self.layout.addWidget(WidgetsRow("Value", self.value))
@@ -50,6 +52,12 @@ class ButtonEditDialog(QDialog):
         self.steps.setValue(int(schema.get('steps', 0)))
         self.layout.addWidget(WidgetsRow("Steps", self.steps))
         #
+        self.percent = QSpinBox()
+        self.percent.setMinimum(0)
+        self.percent.setMaximum(100)
+        self.percent.setValue(int(schema.get('percent', 1) * 100))
+        self.layout.addWidget(WidgetsRow("Percent", self.percent))
+        #
         self.weight = QDoubleSpinBox()
         self.weight.setDecimals(1)
         self.weight.setMinimum(-20)
@@ -57,6 +65,10 @@ class ButtonEditDialog(QDialog):
         self.weight.setValue(float(schema.get('weight', 1)))
         self.weight.setSingleStep(0.5)
         self.layout.addWidget(WidgetsRow("Weight", self.weight))
+
+        self.click_next_cb = QCheckBox("Next on click")
+        self.click_next_cb.setChecked(schema.get('click_next', False))
+        self.layout.addWidget(self.click_next_cb)
 
         # Show the current color and a color picker button
         self.color = QColor(schema.get('color', "#D4D4D4"))
@@ -70,6 +82,12 @@ class ButtonEditDialog(QDialog):
 
         self.enable_widgets()
 
+    def spin_value_changed(self, value):
+        if value < 0:
+            self.weight.setStyleSheet('background-color: red')
+            self.weight.setValue(0)
+            QTimer.singleShot(1000, lambda: self.weight.setStyleSheet(''))
+
     def cb_changed(self, text):
         #        self.fill_cb(self.combo.currentText(), 1)
         self.enable_widgets()
@@ -78,11 +96,14 @@ class ButtonEditDialog(QDialog):
         b = self.combo.currentText() in ['button']
         bm = self.combo.currentText() in ['button', 'multiplier']
         bmc = self.combo.currentText() in ['button', 'multiplier', 'cutter']
+        mc = self.combo.currentText() in ['multiplier', 'cutter']
 
-        self.layout.widgets['Value'].setVisible(bmc)
-        self.layout.widgets['Steps'].setVisible(bm)
+        self.layout.widgets['Value'].setVisible(b)
+        self.layout.widgets['Steps'].setVisible(b)
         self.layout.widgets['Weight'].setVisible(b)
         self.layout.widgets['Color'].setVisible(bmc)
+        self.layout.widgets['Percent'].setVisible(mc)
+        self.click_next_cb.setVisible(b)
 
         self.adjustSize()
 
@@ -100,12 +121,12 @@ class ButtonEditDialog(QDialog):
         if self.combo.currentText() in ['button', 'multiplier', 'cutter']:
             res['color'] = self.color.name()
         if self.combo.currentText() in ['multiplier', 'cutter']:
-            res['value'] = float(self.value.value())
-        if self.combo.currentText() in ['button', 'multiplier']:
-            res['steps'] = self.steps.value()
+            res['percent'] = float(self.percent.value() / 100.0)
         if self.combo.currentText() in ['button']:
+            res['steps'] = self.steps.value()
             res['weight'] = float(self.weight.value())
-            res['value'] = float(self.value.value())
+            res['full_value'] = float(self.value.value())
+            res['click_next'] = self.click_next_cb.isChecked()
 
         return self.le.text(), self.combo.currentText(), res
 

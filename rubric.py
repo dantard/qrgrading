@@ -3,14 +3,14 @@ import csv
 import os
 
 import yaml
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QDrag, QPixmap, QPainter
 from PyQt5.QtWidgets import (QListWidget,
                              QAbstractItemView, QListWidgetItem, QMenu, QMessageBox,
                              QInputDialog, QColorDialog)
 
 from dialogs import ButtonEditDialog, RubricEditDialog
-from buttons import StepButton, Shortcut, Button, TextButton, StateButton
+from buttons import StepButton, Shortcut, Button, TextButton, StateButton, Separator, CutterButton, MultiplierButton
 
 
 class Rubric(QListWidget):
@@ -71,7 +71,6 @@ class Rubric(QListWidget):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Down:
             self.goto_next.emit()
-            print("Key Down")
         else:
             super().keyPressEvent(e)
 
@@ -93,9 +92,17 @@ class Rubric(QListWidget):
                         button.score_changed.connect(self.button_clicked)  # type: ignore
                     elif button_config.get("type") == 'text':
                         button = TextButton(button_name, **button_config)
+                    elif button_config.get("type") == 'cutter':
+                        button = CutterButton(button_name, **button_config)
+                        button.score_changed.connect(self.button_clicked)
+                    elif button_config.get("type") == 'multiplier':
+                        button = MultiplierButton(button_name, **button_config)
+                        button.score_changed.connect(self.button_clicked)
                     elif button_config.get("type") == 'shortcut':
                         button = Shortcut(button_name, **button_config)
                         button.clicked.connect(self.shortcut_activated)
+                    elif button_config.get("type") == 'separator':
+                        button = Separator(button_name, **button_config)
                     else:
                         button = None
 
@@ -116,9 +123,11 @@ class Rubric(QListWidget):
             yaml.dump(schema, f, sort_keys=False)
 
     def button_clicked(self):
-        print("clickckcaaaaaaaaaaaaaaaaaaaaa", self.exam_id)
         self.store(self.exam_id)
         self.score_changed.emit(self, self.exam_id)
+        button = self.sender()
+        if button.get_click_next() and button.is_checked():
+            QTimer.singleShot(500, self.goto_next.emit)
 
     def add_button(self):
 
@@ -151,6 +160,14 @@ class Rubric(QListWidget):
             button.score_changed.connect(self.button_clicked)
         elif kind == 'text':
             button = TextButton(name, **config)
+        elif kind == 'cutter':
+            button = CutterButton(name, **config)
+            button.score_changed.connect(self.button_clicked)
+        elif kind == 'multiplier':
+            button = MultiplierButton(name, **config)
+            button.score_changed.connect(self.button_clicked)
+        elif kind == 'separator':
+            button = Separator(name, **config)
         else:
             button = None
 
@@ -181,14 +198,14 @@ class Rubric(QListWidget):
         item = self.item(self.currentRow())
         widget = self.itemWidget(item)
 
-        if isinstance(widget, StepButton):
+        if isinstance(widget, StateButton):
             menu.addAction("Edit", lambda: self.edit_button(self.currentRow()))
             menu.addAction("Duplicate", lambda: self.duplicate_button(self.currentRow()))
             menu.addAction("Remove", lambda: self.delete_button(self.currentRow()))
             menu.addAction("Add Comment", lambda: self.add_comment(self.currentRow()))
             menu.addSeparator()
         elif isinstance(widget, Shortcut):
-            #    menu.addAction("Remove", lambda: self.remove_shortcut(self.currentRow()))
+            menu.addAction("Remove", lambda: self.remove_shortcut(self.currentRow()))
             menu.addAction("Change Color", lambda: self.set_shortcut_color(self.currentRow()))
             menu.addSeparator()
         menu.addAction("Edit Rubric Config", self.edit_rubric_config)
@@ -202,6 +219,7 @@ class Rubric(QListWidget):
     def compute_score(self, exam_id):
         this_exam_data = self.scores.get(int(exam_id), {})
 
+        total = 0
         points = 0
         for button in self.filter_buttons(StepButton):
             this_button_data = this_exam_data.get(button.get_name(), {})
@@ -209,6 +227,20 @@ class Rubric(QListWidget):
             if value >= 0:
                 value = value * button.get_full_value() / 100.0
                 points = points + value
+            total = total + button.get_full_value()
+
+        cut = 1
+        for button in self.filter_buttons(CutterButton):
+            cut = min(cut, button.get_percent())
+
+        points = min(points, total * cut)
+
+        multiplier = 1
+        for button in self.filter_buttons(MultiplierButton):
+            multiplier = button.get_percent()
+
+        points = points * multiplier
+
         return points
 
     def save_scores(self):
@@ -293,6 +325,7 @@ class Rubric(QListWidget):
             item = self.takeItem(position)
             del item
             self.save_schema()
+            self.score_changed.emit(self, self.exam_id)
 
     def add_comment(self, position):
         # help me get text comment with dialog
@@ -357,7 +390,6 @@ class Rubric(QListWidget):
             self.scores[exam_id] = {}
 
         for b in self.filter_buttons(StateButton):  # type: Score
-            print(b.get_state(), b.name, exam_id, type(exam_id))
             self.scores[exam_id][b.get_name()] = b.get_state()
             # b.clear_comment()
 

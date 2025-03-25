@@ -5,7 +5,9 @@ import pandas
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget, QLabel, QVBoxLayout, \
-    QSizePolicy, QLayout, QFormLayout, QCheckBox
+    QSizePolicy, QLayout, QFormLayout, QCheckBox, QFrame, QGroupBox
+from mercurial.similar import score
+from mercurial.wireprotoframing import frame
 
 from swikv4.widgets.swik_basic_widget import SwikBasicWidget
 import sys
@@ -91,14 +93,19 @@ class MainWindow(QMainWindow):
         details_layout.addWidget(QLabel("Group:"))
         details_layout.addWidget(self.group_lbl)
 
-        self.main_layout.addLayout(details_layout)
         self.main_layout.addWidget(self.splitter)
+        self.main_layout.addLayout(details_layout)
 
         self.rubrics_tabs = QTabWidget()
+
         helper = QWidget()
         helper.setLayout(QVBoxLayout())
+
         self.scores_layout = QFormLayout()
-        helper.layout().addLayout(self.scores_layout)
+        framebox = QGroupBox("Scores")
+        framebox.setLayout(self.scores_layout)
+
+        helper.layout().addWidget(framebox)
         helper.layout().addWidget(self.rubrics_tabs)
 
         self.quiz_score_lbl = QLabel("0")
@@ -148,6 +155,7 @@ class MainWindow(QMainWindow):
             name = os.path.basename(filename).replace(".scm", "")
             r1 = Rubric(filename, self.dir_xls)
             r1.score_changed.connect(self.rubric_score_changed)
+            r1.goto_next.connect(self.goto_next)
             self.rubrics_tabs.addTab(r1, name)
             self.rubrics.append(r1)
 
@@ -161,26 +169,36 @@ class MainWindow(QMainWindow):
 
             self.scores_layout.insertRow(1, rubric_cb, label)
 
+    def goto_next(self):
+        current = self.pdf_tree.currentItem()
+        if current is not None:
+            index = self.pdf_tree.indexOfTopLevelItem(current)
+            if index < self.pdf_tree.topLevelItemCount() - 1:
+                self.pdf_tree.setCurrentItem(self.pdf_tree.topLevelItem(index + 1))
+
     def score_checkbox_changed(self, state):
         self.update_all_pdf_tree_scores()
+        self.update_scores_layout()
 
     def rubric_score_changed(self, rubric, exam_id):
-        print("kjlkjlkj")
         self.update_scores_layout()
         self.update_pdf_tree_score()
 
     def update_scores_layout(self):
+        total = 0
         quiz_score = self.get_quiz_score(self.current_exam)
         self.quiz_score_lbl.setText(str(quiz_score))
+        if self.quiz_cb.isChecked():
+            total += quiz_score
 
-        final = 0
         for index, r in enumerate(self.rubrics):
             value = r.compute_score(self.current_exam)
             self.rubrics_labels[index].setText(str(value))
-            final += value
+            if self.rubrics_cb[index].isChecked():
+                total += value
 
-        self.total_score_lbl.setText(str(final + quiz_score))
-        return final
+        self.total_score_lbl.setText(str(total))
+        return total
 
     def pdf_tree_selection_changed(self, current, previous):
 

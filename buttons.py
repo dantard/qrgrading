@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QCursor, QGuiApplication
+from PyQt5.QtGui import QCursor, QGuiApplication, QFont
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QSpinBox, QLabel, QTextEdit, QVBoxLayout
 
 
@@ -37,6 +37,20 @@ class Shortcut(Button):
         return {"type": "shortcut", "buttons": self.buttons, "color": self.styleSheet().split(":")[1]}
 
 
+class Separator(Button):
+    def __init__(self, name, **kwargs):
+        super().__init__(name)
+        self.setLayout(QHBoxLayout())
+        self.label = QLabel(name)
+        self.label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.label.setAlignment(Qt.AlignCenter)
+        self.layout().addWidget(self.label)
+        self.layout().setContentsMargins(5, 5, 5, 5)
+
+    def get_config(self):
+        return {"type": "separator"}
+
+
 class StateButton(Button):
     pass
 
@@ -52,6 +66,7 @@ class TextButton(StateButton):
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(QLabel(name))
         self.layout().addWidget(self.button)
+        self.layout().setContentsMargins(5, 2, 5, 2)
 
     def get_config(self):
         return {"type": "text"}
@@ -72,14 +87,14 @@ class StepButton(StateButton):
         self.weight = kwargs.get('weight', 1)
         self.full_value = kwargs.get('full_value', 1)
         self.n_steps = kwargs.get('steps', 0)
-        color = kwargs.get("color", None)
+        color = kwargs.get("color", "#D4D4D4")
         self.click_next = kwargs.get("click_next", False)
 
         self.comment = None
         self.step = int(100 / self.n_steps) if self.n_steps > 0 else 100
 
         layout = QHBoxLayout()
-        # layout.setContentsMargins(15, 5, 15, 5)
+        layout.setContentsMargins(5, 2, 5, 2)
 
         self.button = QPushButton(name)
         self.button.setMinimumWidth(10)
@@ -214,3 +229,55 @@ class StepButton(StateButton):
 
     def get_click_next(self):
         return self.click_next and self.button.isChecked()
+
+
+class PercentButton(StateButton):
+    score_changed = pyqtSignal()
+
+    def __init__(self, name, **kwargs):
+        super().__init__(name)
+
+        self.percent = kwargs.get('percent', 1)
+        color = kwargs.get("color", "#D4D4D4")
+        self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(5, 2, 5, 2)
+        self.button = QPushButton(name)
+        self.button.setMinimumWidth(10)
+        self.button.setCheckable(True)
+        self.button.setStyleSheet('background-color: {}'.format(color))
+        self.button.clicked.connect(self.score_changed.emit)
+        self.layout().addWidget(self.button)
+
+    def get_config(self):
+        return {"percent": self.percent, "color": self.get_color()}
+
+    def get_state(self):
+        return {"percent": self.percent if self.button.isChecked() else 1}
+
+    def set_state(self, state):
+        self.button.setChecked(state.get("percent", 1) < 1)
+
+    def get_xls_value(self):
+        return self.percent if self.is_checked() else 1
+
+    def get_color(self):
+        return self.button.styleSheet().split(":")[1].strip()
+
+    def get_percent(self):
+        return self.percent if self.button.isChecked() else 1
+
+
+class MultiplierButton(PercentButton):
+
+    def get_config(self):
+        config = super().get_config()
+        config["type"] = "multiplier"
+        return config
+
+
+class CutterButton(PercentButton):
+
+    def get_config(self):
+        config = super().get_config()
+        config["type"] = "cutter"
+        return config
