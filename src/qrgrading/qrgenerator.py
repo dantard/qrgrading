@@ -22,7 +22,7 @@ def main():
     parser.add_argument('-j', '--threads', help='Maximum number of threads to use (4)', default=4, type=int)
     parser.add_argument('-n', '--number', help='Number or exams to be generated', default=0, type=int)
     parser.add_argument('-P', '--pages', help='Acceptable number of pages of output PDF', default=-1, type=int)
-    parser.add_argument('-T', '--temporary', help='Specify temporary directory', type=str, default="/tmp")
+    parser.add_argument('-T', '--temp', help='Specify temp directory', type=str, default="/tmp")
     parser.add_argument('-q', '--questions', help='Generate questions csv', action='store_true')
     parser.add_argument('-g', '--generated', help='Generate questions csv', action='store_true')
     parser.add_argument('-v', '--verbose', help='Extra verbosity', action='store_true')
@@ -41,7 +41,7 @@ def main():
                                                                           args["begin"], args["threads"],
                                                                           args["verbose"], args["pages"],
                                                                           args["generated"], args["questions"],
-                                                                          args["cleanup"], args["temporary"], args["filename"])
+                                                                          args["cleanup"], args["temp"], args["filename"])
     if number > 0:
         create_generated = True
         create_questions = True

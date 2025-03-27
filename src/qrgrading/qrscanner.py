@@ -15,6 +15,7 @@ from qrgrading.code import Code
 from qrgrading.code_set import CodeSet, PageCodeSet
 from qrgrading.common import check_workspace, get_workspace_paths, get_temp_paths, Generated, Questions, get_date
 from qrgrading.page_processor import PageProcessor
+from qrgrading.utils import makedir
 
 
 def main():
@@ -31,6 +32,7 @@ def main():
     parser.add_argument('-S', '--simulate', help='Create random marked files', type=int, default=0)
     parser.add_argument('-e', '--reconstruct', help='Reconstruct exams', action="store_true")
     parser.add_argument('-p', '--process', help='Options -snre', action="store_true")
+    parser.add_argument('-T', '--temp', help='Specify temp directory', type=str, default="/tmp")
 
     args = vars(parser.parse_args())
 
@@ -39,7 +41,7 @@ def main():
         sys.exit(1)
 
     dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish, dir_source = get_workspace_paths(os.getcwd())
-    dir_temp_scanner, _ = get_temp_paths(get_date(), os.getcwd())
+    dir_temp_scanner, _ = get_temp_paths(get_date(), os.getcwd() if args.get("temp") is None else args.get("temp"))
 
     prefix = str(get_date()) + "_"
 
@@ -52,6 +54,7 @@ def main():
 
     if (simulate := args.get("simulate")) > 0:
         print("Simulation in progress ({} files)".format(simulate))
+        makedir(dir_scanned, clear=True)
 
         generated = Generated(72 / 25.4)
 

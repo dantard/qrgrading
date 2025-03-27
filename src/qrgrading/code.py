@@ -98,6 +98,8 @@ class Code:
             return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page})"
         elif self.type == self.TYPE_N:
             return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page}, NUM:{self.number})"
+        elif self.type == self.TYPE_O:
+            return f"({self.data}, {self.exam}, {self.x}, {self.y}, {self.w}, {self.h}, PAG:{self.page}, Q:{self.question})"
 
     permut = [[5, 6, 7, 8],
               [5, 6, 8, 7],
