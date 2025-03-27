@@ -4,11 +4,7 @@ import shutil
 
 import cv2
 import numpy as np
-import pandas
 import zxingcpp
-
-from code import Code
-from code_set import CodeSet
 
 
 def pix2np(pix):

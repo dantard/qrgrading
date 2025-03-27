@@ -5,7 +5,7 @@ from gspread.utils import a1_to_rowcol
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-from common import get_narrowest_type
+from qrgrading.common import get_narrowest_type
 
 
 class GDrive:
@@ -43,7 +43,7 @@ class GDrive:
             file_list = self.gdrive.ListFile({'q': f"'{folder_id}' in parents and trashed=false"}).GetList()
             result = []
             for file in file_list:
-                result.append((file['title'],file['id']))
+                result.append((file['title'], file['id']))
         except:
             result = None
         return result
@@ -64,7 +64,7 @@ class GDrive:
         return parent_id  # Return the final folder ID
 
     def get_shared_folder_id(self, folder_name):
-        query = "title = '"+folder_name+"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        query = "title = '" + folder_name + "' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         shared_folders = self.gdrive.ListFile(
             {'q': query, 'spaces': 'drive', 'corpora': 'allDrives', 'supportsAllDrives': True}).GetList()
         if shared_folders:
@@ -79,11 +79,12 @@ class GDrive:
         file.Upload()
         return file['id']
 
+
 class Sheets:
 
     def __init__(self, **kwargs):
-        self.base_folder = kwargs.get("base_folder", ".")
-        self.config_dir = kwargs.get("config_dir", ".")
+        self.base_folder = kwargs.get("base_folder", "../..")
+        self.config_dir = kwargs.get("config_dir", "../..")
         self.gc = None
         self.wb = None
         self.woksheets = None
@@ -91,10 +92,9 @@ class Sheets:
         if kwargs.get("authorize", True):
             self.authorize()
 
-
     def authorize(self):
         self.gc = gspread.oauth(credentials_filename=self.config_dir + os.sep + "client_secret.json",
-                           authorized_user_filename=self.config_dir + os.sep + "token.json")
+                                authorized_user_filename=self.config_dir + os.sep + "token.json")
 
     def open(self, args_workbook):
         self.wb = self.gc.open(args_workbook)
@@ -103,7 +103,6 @@ class Sheets:
 
     def set_base_folder(self, folder):
         self.base_folder = folder
-
 
     def upload_all(self, args_filter=None, args_yes=False):
         csv_files = [self.base_folder + os.sep + f for f in os.listdir(self.base_folder) if f.endswith(".csv")]
@@ -155,12 +154,11 @@ class Sheets:
                     for i in range(len(row)):
                         row[i] = get_narrowest_type(row[i])
 
-            #print("Uploading sheet {}".format(title))
+            # print("Uploading sheet {}".format(title))
             new_ws.update(data, corner)
 
     def download(self, args_sheet, args_yes=False):
         self._download([args_sheet], self.base_folder, args_yes)
-
 
     def download_all(self, args_filter=None, args_yes=False):
         # Download files
@@ -213,4 +211,3 @@ class Sheets:
                     print("Local:  ", str(data[i]).replace("'", ""))
                     print("Remote: ", str(ws_data[i]).replace("'", ""))
                     print("")
-

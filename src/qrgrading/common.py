@@ -2,8 +2,8 @@ import os
 
 import pandas
 
-from code import Code
-from code_set import CodeSet
+from qrgrading.code import Code
+from qrgrading.code_set import CodeSet
 
 
 def get_workspace_paths(base):
@@ -89,6 +89,8 @@ class StudentsData:
         return False
 
     def get_name(self, nia):
+        if self.data is None:
+            return None
         by_nia = self.data[self.data["NIA"] == nia]
         if by_nia.empty:
             return None
@@ -96,6 +98,8 @@ class StudentsData:
         return by_nia.iloc[0]["NAME"]
 
     def get_group(self, nia):
+        if self.data is None:
+            return None
         by_nia = self.data[self.data["NIA"] == nia]
         if by_nia.empty:
             return None
@@ -120,7 +124,7 @@ class Nia:
         if by_exam.empty or by_exam.iloc[0]["NIA"] is None:
             return None
         nia = by_exam.iloc[0]["NIA"]
-        return int(nia) if nia.isdigit() else str(nia)
+        return int(nia) if str(nia).isdigit() else str(nia)
 
     def get_exam(self, nia):
         by_nia = self.nia[self.nia["NIA"] == nia]
@@ -128,6 +132,7 @@ class Nia:
             return None
 
         return by_nia.iloc[0]["EXAM"]
+
 
 def get_narrowest_type(cell):
     try:

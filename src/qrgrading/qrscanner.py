@@ -11,13 +11,13 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QGraphicsRectItem
 from pymupdf.mupdf import PDF_ENCRYPT_KEEP
 
-from code import Code
-from code_set import CodeSet, PageCodeSet
-from common import check_workspace, get_workspace_paths, get_temp_paths, Generated, Questions, get_date
-from page_processor import PageProcessor
+from qrgrading.code import Code
+from qrgrading.code_set import CodeSet, PageCodeSet
+from qrgrading.common import check_workspace, get_workspace_paths, get_temp_paths, Generated, Questions, get_date
+from qrgrading.page_processor import PageProcessor
 
-if __name__ == '__main__':
 
+def main():
     parser = argparse.ArgumentParser(description='Patching and detection')
 
     parser.add_argument('-B', '--begin', type=int, help='First page to process', default=0)
@@ -79,8 +79,19 @@ if __name__ == '__main__':
                             y = qr.y - 7
                             w = 10
                             h = 10
-                            annot = page.add_redact_annot(pymupdf.Rect(x, y, x + w, y + h), fill=(1, 0, 0), cross_out=False)
+                            annot = page.add_redact_annot(pymupdf.Rect(x, y, x + w, y + h), fill=(0.5, 0.5, 0.5), cross_out=False)
                             break
+
+                nias = generated.select(type=Code.TYPE_N, exam=int(exam), page=page.number + 1)
+                for i in range(6):
+                    r = randint(0, 9)
+                    qr = nias.first(number=i * 10 + r)
+                    if qr is not None:
+                        x = qr.x + 5
+                        y = qr.y - 7
+                        w = 10
+                        h = 10
+                        annot = page.add_redact_annot(pymupdf.Rect(x, y, x + w, y + h), fill=(0.5, 0.5, 0.5), cross_out=False)
 
                 # Apply the redactions
                 page.apply_redactions()
@@ -220,3 +231,7 @@ if __name__ == '__main__':
             pdf_file.save(filename, incremental=True, encryption=PDF_ENCRYPT_KEEP)
 
     print("All done :)")
+
+
+if __name__ == '__main__':
+    main()

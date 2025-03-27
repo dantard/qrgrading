@@ -1,6 +1,6 @@
 import os
 
-from code import Code
+from qrgrading.code import Code
 
 
 class CodeSet:
@@ -33,7 +33,7 @@ class CodeSet:
         return iter(self.codes.values())
 
     def select(self, **kwargs):
-        filtered =  [x for x in self.codes.values() if all(getattr(x, key) == value for key, value in kwargs.items())]
+        filtered = [x for x in self.codes.values() if all(getattr(x, key) == value for key, value in kwargs.items())]
         result = CodeSet()
         for code in filtered:
             result.append(code)
@@ -54,7 +54,8 @@ class CodeSet:
     def save(self, file_name):
         with open(file_name, "w") as f:
             for code in self.codes.values():
-                f.write(code.data + ",{:.2f},{:.2f},{:.2f},{:.2f},{},{},{:d}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
+                f.write(
+                    code.data + ",{:.2f},{:.2f},{:.2f},{:.2f},{},{},{:d}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
 
     def load(self, file_name):
         if not os.path.exists(file_name):
@@ -80,6 +81,7 @@ class CodeSet:
 
     def first(self, **kwargs) -> Code:
         return next(iter(self.select(**kwargs)), None)
+
 
 class PageCodeSet(CodeSet):
 
@@ -109,4 +111,3 @@ class PageCodeSet(CodeSet):
         if len(self.codes.values()) > 0:
             return next(iter(self.codes.values())).date
         return None
-

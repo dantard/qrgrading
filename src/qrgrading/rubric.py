@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import (QListWidget,
                              QAbstractItemView, QListWidgetItem, QMenu, QMessageBox,
                              QInputDialog, QColorDialog)
 
-from dialogs import ButtonEditDialog, RubricEditDialog
-from buttons import StepButton, Shortcut, Button, TextButton, StateButton, Separator, CutterButton, MultiplierButton
+from qrgrading.dialogs import ButtonEditDialog, RubricEditDialog
+from qrgrading.buttons import StepButton, Shortcut, Button, TextButton, StateButton, Separator, CutterButton, MultiplierButton
 
 
 class Rubric(QListWidget):

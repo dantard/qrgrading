@@ -5,12 +5,12 @@ import sys
 
 import yaml
 
-from common import check_workspace
-from utils import makedir
+from qrgrading.common import check_workspace
+from qrgrading.utils import makedir
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gdrive import GDrive, Sheets
+from qrgrading.gdrive import GDrive, Sheets
 
 client_secrets_json = '''  '''
 
@@ -84,11 +84,10 @@ def main():
             print("All files uploaded to folder", folder_id)
             args["list"] = folder_id
 
-
         if args.get("list", None):
             files = gd.ls(folder_id)
 
-            with open("results" +os.sep + "xls" + os.sep + date + "_pdf.csv", "w") as f:
+            with open("results" + os.sep + "xls" + os.sep + date + "_pdf.csv", "w") as f:
                 for file in files:
                     f.write(file[0].replace(".pdf", "") + "\t" + file[1] + "\n")
             print("Written to results/xls/{}_pdf.csv ({} rows)".format(date, len(files)))
@@ -104,7 +103,7 @@ def main():
         args_upload_all = args.get("upload_all", False)
         args_diff = args.get("diff", None)
 
-        #args_filter = date if args_filter is None else args_filter
+        # args_filter = date if args_filter is None else args_filter
         args_filter = None if args_filter == "." else args_filter
 
         if len(args_upload) > 0 and args_upload_all:
@@ -134,7 +133,6 @@ def main():
 
     print("All Done :)")
 
+
 if __name__ == "__main__":
     main()
-
-

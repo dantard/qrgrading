@@ -1,23 +1,21 @@
 import argparse
 import os
+import sys
 
-import pandas
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from PyQt5.QtGui import QPen
-from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget, QLabel, QVBoxLayout, \
-    QSizePolicy, QLayout, QFormLayout, QCheckBox, QFrame, QGroupBox
-from mercurial.similar import score
-from mercurial.wireprotoframing import frame
-
-from swikv4.widgets.swik_basic_widget import SwikBasicWidget
-import sys
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QTreeWidgetItem, QSplitter, QGraphicsRectItem, QTabWidget, QLabel, QVBoxLayout, \
+    QSizePolicy, QFormLayout, QCheckBox, QGroupBox
+from easyconfig2.easyconfig import EasyConfig2
+from swikv4.widgets.swik_basic_widget import SwikBasicWidget
 
-from code import Code
-from code_set import CodeSet
-from common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
-from rubric import Rubric
-from pdf_tree import PDFTree
+from qrgrading.utils import makedir
+from qrgrading.code import Code
+from qrgrading.code_set import CodeSet
+from qrgrading.common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
+from qrgrading.pdf_tree import PDFTree
+from qrgrading.rubric import Rubric
 
 
 class Mark(QGraphicsRectItem):
@@ -41,6 +39,11 @@ class Mark(QGraphicsRectItem):
 class MainWindow(QMainWindow):
     def __init__(self, schema_filenames):
         super().__init__()
+
+        makedir(os.path.expanduser("~") + os.sep + ".config/qrgrading/")
+        self.config = EasyConfig2(filename=os.path.expanduser("~") + os.sep + ".config/qrgrading/qrgrader.yaml")
+        self.cfg_geometry = self.config.root().addPrivate("geometry", default=[0, 0, 1200, 1000, False])
+        self.config.load()
 
         self.current_exam = None
         self.detected = CodeSet()
@@ -131,7 +134,20 @@ class MainWindow(QMainWindow):
         self.pdf_tree.currentItemChanged.connect(self.pdf_tree_selection_changed)
         if self.pdf_tree.topLevelItemCount() > 0:
             self.pdf_tree.setCurrentItem(self.pdf_tree.topLevelItem(0))
+
+        x, y, w, h, fullscreen = self.cfg_geometry.get()
+        if fullscreen:
+            self.showFullScreen()
+        else:
+            self.setGeometry(x, y, w, h)
+
         self.show()
+
+    def closeEvent(self, a0):
+        self.cfg_geometry.set(
+            [self.geometry().x(), self.geometry().y(), self.geometry().width(), self.geometry().height(),
+             self.isFullScreen()])
+        self.config.save()
 
     def load_detected(self):
         self.detected.load(self.dir_data + "detected.csv")
@@ -139,16 +155,15 @@ class MainWindow(QMainWindow):
     def load_tables(self):
 
         if not self.xls_questions.load():
-            print("ERROR: questions file nos present")
+            print("ERROR: questions.csv file nos present")
             sys.exit(1)
 
         if not self.xls_nia.load():
-            print("ERROR: questions file nos present")
+            print("ERROR: nia.csv file nos present")
             sys.exit(1)
 
         if not self.xls_data.load():
-            print("ERROR: questions file nos present")
-            sys.exit(1)
+            print("WARNING: data.csv file nos present")
 
     def load_schemas(self):
         for filename in self.rubrics_files:
@@ -211,8 +226,9 @@ class MainWindow(QMainWindow):
 
         ratio = self.swik.view.get_ratio()
         rubric = self.rubrics_tabs.currentWidget()
+        index = rubric.get_page() if rubric is not None else 0
 
-        self.swik.open(f"{self.dir_publish}{self.current_exam}.pdf", ratio=ratio, index=rubric.get_page())
+        self.swik.open(f"{self.dir_publish}{self.current_exam}.pdf", ratio=ratio, index=index)
 
     def load_finished(self):
 
@@ -220,7 +236,7 @@ class MainWindow(QMainWindow):
 
         nia = self.xls_nia.get_nia(self.current_exam)
         self.nia_lbl.setText(str(nia))
-        self.name_lbl.setText(self.xls_data.get_name(nia))
+        self.name_lbl.setText(str(self.xls_data.get_name(nia)))
         self.group_lbl.setText(str(self.xls_data.get_group(nia)))
 
         for rubric in self.rubrics:
@@ -336,8 +352,7 @@ class MainWindow(QMainWindow):
         self.update_pdf_tree_score()
 
 
-if __name__ == "__main__":
-
+def main():
     app = QApplication(sys.argv)
 
     if not check_workspace():
@@ -369,3 +384,7 @@ if __name__ == "__main__":
 
     main = MainWindow(filenames)
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

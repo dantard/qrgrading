@@ -2,10 +2,17 @@ import argparse
 import os
 from datetime import date
 
-from common import get_workspace_paths
+from qrgrading.common import get_workspace_paths
 
-if __name__ == '__main__':
+import importlib.resources
 
+
+def get_resource(name):
+    with importlib.resources.files("qrgrading").joinpath("latex" + os.sep + name).open("r") as f:
+        return f.read()
+
+
+def main():
     parser = argparse.ArgumentParser()
     today = date.today().strftime("%y%m%d")
     parser.add_argument('-d', '--date', type=int, help='Date', default=today)
@@ -21,4 +28,16 @@ if __name__ == '__main__':
         if not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
+    dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish, dir_source = directories
+
+    with open(dir_source + "main.tex", "w") as f:
+        f.write(get_resource("main.tex"))
+
+    with open(dir_source + "qrgrading.sty", "w") as f:
+        f.write(get_resource("qrgrading.sty"))
+
     print(f"Workspace qrgrading-{args['date']} created successfully.")
+
+
+if __name__ == '__main__':
+    main()

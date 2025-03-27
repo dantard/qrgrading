@@ -25,12 +25,12 @@ class Generator(Process):
     def __init__(self, semaphore, filename, uniqueid, **kwargs):
         super().__init__()
         self.uniqueid = uniqueid
-        self.dir_generated = kwargs.get("dir_generated", ".")
+        self.dir_generated = kwargs.get("dir_generated", "../..")
         self.source_filename = filename
-        self.dir_temp_generator = kwargs.get("dir_temp_generator", ".")
+        self.dir_temp_generator = kwargs.get("dir_temp_generator", "../..")
         self.desired_pages = kwargs.get("desired_pages", -1)
         self.verbose = kwargs.get("verbose", False)
-        self.dir_source = kwargs.get("dir_source", ".")
+        self.dir_source = kwargs.get("dir_source", "../..")
         self.semaphore = semaphore
 
     def run(self):

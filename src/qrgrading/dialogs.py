@@ -3,7 +3,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QLineEdit, QPushButton, QSpinBox, QDialog, QDialogButtonBox, QComboBox, QDoubleSpinBox, QFormLayout, QCheckBox)
 
-from widget_utils import WidgetsRow, VBox
+from qrgrading.widget_utils import WidgetsRow, VBox
 
 
 class ButtonEditDialog(QDialog):

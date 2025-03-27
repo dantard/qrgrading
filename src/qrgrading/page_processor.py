@@ -7,10 +7,9 @@ from multiprocessing import Manager, Pool, Process
 import cv2
 import pymupdf
 
-from code import Code
-from code_set import CodeSet, PageCodeSet
-from utils import pix2np, get_patches, threshold, get_codes, compute_similarity_transform
-
+from qrgrading.code import Code
+from qrgrading.code_set import CodeSet, PageCodeSet
+from qrgrading.utils import pix2np, get_patches, threshold, get_codes, compute_similarity_transform
 
 
 class PageProcessor(Process):
@@ -27,7 +26,7 @@ class PageProcessor(Process):
         self.matrix = pymupdf.Matrix(self.dpi / 72, self.dpi / 72)
         self.show_patches = kwargs.get("show_patches", False)
         self.resize = kwargs.get("resize", 1.0)
-        self.dir_images = kwargs.get("dir_images", ".")
+        self.dir_images = kwargs.get("dir_images", "../..")
 
         self.ppm = self.dpi / 25.4
 
@@ -121,7 +120,7 @@ class PageProcessor(Process):
         if page is None:
             for code in detected:
                 code = self.generated.get(code)
-                if code:=self.generated.get(code):
+                if code := self.generated.get(code):
                     page = code.get_page()
                     exam = code.get_exam_id()
                     break
@@ -162,8 +161,8 @@ class PageProcessor(Process):
 
         for code in generated_page_codeset:
             code.move(delta)
-            code.set_size(120,120)
-            code.scale(72.0/self.dpi)
+            code.set_size(120, 120)
+            code.scale(72.0 / self.dpi)
             code.set_marked(detected.get(code) is None)
             self.result.append(code)
 

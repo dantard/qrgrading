@@ -11,9 +11,9 @@ from os import listdir
 
 from PIL.ImImagePlugin import number
 
-from common import get_workspace_paths, get_temp_paths, check_workspace, get_date
-from generator import Generator
-from utils import makedir
+from qrgrading.common import get_workspace_paths, get_temp_paths, check_workspace, get_date
+from qrgrading.generator import Generator
+from qrgrading.utils import makedir
 
 
 def main():
