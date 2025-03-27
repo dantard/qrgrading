@@ -12,7 +12,8 @@ from qrgrading.utils import makedir
 
 from qrgrading.gdrive import GDrive, Sheets
 
-client_secrets_json = '''  '''
+client_secrets_json = '''{
+}'''
 
 
 def main():
@@ -90,6 +91,7 @@ def main():
             with open("results" + os.sep + "xls" + os.sep + date + "_pdf.csv", "w") as f:
                 for file in files:
                     f.write(file[0].replace(".pdf", "") + "\t" + file[1] + "\n")
+
             print("Written to results/xls/{}_pdf.csv ({} rows)".format(date, len(files)))
 
     args_workbook = args.get("workbook", None)

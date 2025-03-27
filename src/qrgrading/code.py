@@ -3,6 +3,7 @@ class Code:
     TYPE_P = 1
     TYPE_Q = 2
     TYPE_N = 3
+    TYPE_O = 4
 
     def __init__(self, data, x, y, w, h, page=None, pdf_page=None):
         self.data = data
@@ -14,7 +15,12 @@ class Code:
         self.exam = None
         self.page = page
         self.pdf_page = pdf_page
-        if self.data[0] == "P":
+        if self.data[0] == "O":
+            self.date = int(self.data[1:7])
+            self.exam = int(self.data[7:10])
+            self.question = int(self.data[10:12])
+            self.type = self.TYPE_O
+        elif self.data[0] == "P":
             self.date = int(self.data[1:7])
             self.exam = int(self.data[7:10])
             self.page = int(self.data[10:12])

@@ -41,6 +41,8 @@ def main():
     dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish, dir_source = get_workspace_paths(os.getcwd())
     dir_temp_scanner, _ = get_temp_paths(get_date(), os.getcwd())
 
+    prefix = str(get_date()) + "_"
+
     ppm = args.get("dpi") / 25.4
     if args.get("process"):
         args["scan"] = True
@@ -53,7 +55,7 @@ def main():
 
         generated = Generated(72 / 25.4)
 
-        if not generated.load(dir_data + "generated.csv"):
+        if not generated.load(dir_data + prefix + "generated.csv"):
             print("ERROR: generated.csv not found")
             sys.exit(1)
 
@@ -114,7 +116,7 @@ def main():
         os.makedirs(dir_temp_scanner, exist_ok=True)
 
         generated = Generated(ppm)
-        if not generated.load(dir_data + "generated.csv"):
+        if not generated.load(dir_data + prefix + "generated.csv"):
             print("ERROR: generated.csv not found")
             sys.exit(1)
 
@@ -149,11 +151,11 @@ def main():
 
             codes = CodeSet()
             codes.extend(detected)
-            codes.save(dir_data + "detected.csv")
+            codes.save(dir_data + prefix + "detected.csv")
 
     if args.get("reconstruct") or args.get("nia") or args.get("raw") or args.get("annotate"):
         codes = CodeSet()
-        if not codes.load(dir_data + "detected.csv"):
+        if not codes.load(dir_data + prefix + "detected.csv"):
             print("ERROR: detected.csv not found")
             sys.exit(1)
 
@@ -175,7 +177,7 @@ def main():
 
     if args.get("nia"):
         print("Creating NIA xls file")
-        with open(dir_xls + "nia.csv", "w") as f:
+        with open(dir_xls + prefix + "nia.csv", "w") as f:
             f.write("EXAM\tNIA\n")
             for exam in exams:
                 nia = {0: 'Y', 1: 'Y', 2: 'Y', 3: 'Y', 4: 'Y', 5: 'Y'}
@@ -190,7 +192,17 @@ def main():
 
     if args.get("raw"):
         print("Creating RAW xls file")
-        with open(dir_xls + "raw.csv", "w") as f:
+        with open(dir_xls + prefix + "raw.csv", "w") as f:
+            # # Header
+            # line = "DATE\tEXAM"
+            # for qn in codes.get_questions():
+            #     for an in codes.get_answers():
+            #         line += "\tQ{:d}{}".format(qn, chr(64 + an))
+            # for on in codes.get_open():
+            #     line += "\tO{:d}".format(on)
+            # f.write(line + "\n")
+
+            # Exams
             for exam in exams:
                 line = f"{date}\t{exam}"
                 for question in codes.get_questions():
@@ -198,11 +210,13 @@ def main():
                         result = codes.first(exam=exam, type=Code.TYPE_A, question=question, answer=answer)
                         line += "\t1" if result is None or result.marked else "\t0"
 
+                for open_questions in codes.get_open():
+                    line += "\t0"
                 f.write(line + "\n")
 
     if args.get("annotate"):
         print("Annotating exams")
-        questions = Questions(dir_xls)
+        questions = Questions(dir_xls + prefix + "questions.csv")
         if not questions.load():
             print("ERROR: questions.csv not found")
             sys.exit(1)

@@ -40,14 +40,19 @@ def check_workspace():
     return True
 
 
+def get_prefix():
+    date = get_date()
+    return str(date) + "_"
+
+
 class Questions:
-    def __init__(self, dir_xls):
-        self.dir_xls = dir_xls
+    def __init__(self, filename):
+        self.filename = filename
         self.questions = None
 
     def load(self):
-        if os.path.exists(self.dir_xls + "questions.csv"):
-            self.questions = pandas.read_csv(self.dir_xls + "questions.csv", sep='\t', header=0)
+        if os.path.exists(self.filename):
+            self.questions = pandas.read_csv(self.filename, sep='\t', header=0)
             return True
         return False
 
@@ -78,13 +83,13 @@ class Generated(CodeSet):
 
 
 class StudentsData:
-    def __init__(self, dir_xls):
-        self.dir_xls = dir_xls
+    def __init__(self, filename):
+        self.filename = filename
         self.data = None
 
     def load(self):
-        if os.path.exists(self.dir_xls + "data.csv"):
-            self.data = pandas.read_csv(self.dir_xls + "data.csv", sep='\t', header=0)
+        if os.path.exists(self.filename):
+            self.data = pandas.read_csv(self.filename, sep='\t', header=0)
             return True
         return False
 
@@ -109,13 +114,13 @@ class StudentsData:
 
 class Nia:
 
-    def __init__(self, dir_xls):
-        self.dir_xls = dir_xls
+    def __init__(self, filename):
+        self.filename = filename
         self.nia = None
 
     def load(self):
-        if os.path.exists(self.dir_xls + "nia.csv"):
-            self.nia = pandas.read_csv(self.dir_xls + "nia.csv", sep='\t', header=0)
+        if os.path.exists(self.filename):
+            self.nia = pandas.read_csv(self.filename, sep='\t', header=0)
             return True
         return False
 

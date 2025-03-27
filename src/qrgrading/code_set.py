@@ -48,6 +48,9 @@ class CodeSet:
     def get_questions(self):
         return sorted(list(set([x.question for x in self.codes.values() if x.type == Code.TYPE_A])))
 
+    def get_open(self):
+        return sorted(list(set([x.question for x in self.codes.values() if x.type == Code.TYPE_O])))
+
     def get_answers(self):
         return sorted(list(set([x.answer for x in self.codes.values() if x.type == Code.TYPE_A])))
 

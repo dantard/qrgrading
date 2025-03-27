@@ -9,9 +9,7 @@ import sys
 from multiprocessing import Manager
 from os import listdir
 
-from PIL.ImImagePlugin import number
-
-from qrgrading.common import get_workspace_paths, get_temp_paths, check_workspace, get_date
+from qrgrading.common import get_workspace_paths, get_temp_paths, check_workspace, get_date, get_prefix
 from qrgrading.generator import Generator
 from qrgrading.utils import makedir
 
@@ -35,6 +33,7 @@ def main():
         sys.exit(1)
 
     date = get_date()
+    prefix = get_prefix()
 
     (file, number, begin,
      threads, verbose, desired_pages,
@@ -103,7 +102,7 @@ def main():
         print("Creating generated.csv file...", end="")
         logs = sorted([x for x in listdir(dir_temp_generator) if x.endswith(".aux")])
 
-        w = open(dir_data + "generated.csv", "w")
+        w = open(dir_data + prefix + "generated.csv", "w")
         for f in logs:
             pdf_page = 0
             f = open(dir_temp_generator + os.sep + f, "r")
@@ -138,7 +137,7 @@ def main():
                 log = file.read()
                 log = log.split(";;;")
                 questions_number = []
-                with open(dir_xls + "questions.csv".format(date), 'w') as filew:
+                with open(dir_xls + prefix + "questions.csv".format(date), 'w') as filew:
                     data = "ID\tTYPE\tA\tB\tC\tD\tBRIEF\n"
 
                     for i in range(1, len(log) - 1):

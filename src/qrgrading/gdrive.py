@@ -158,7 +158,7 @@ class Sheets:
             new_ws.update(data, corner)
 
     def download(self, args_sheet, args_yes=False):
-        self._download([args_sheet], self.base_folder, args_yes)
+        self._download(args_sheet, self.base_folder, args_yes)
 
     def download_all(self, args_filter=None, args_yes=False):
         # Download files

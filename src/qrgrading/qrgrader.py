@@ -13,7 +13,7 @@ from swikv4.widgets.swik_basic_widget import SwikBasicWidget
 from qrgrading.utils import makedir
 from qrgrading.code import Code
 from qrgrading.code_set import CodeSet
-from qrgrading.common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData
+from qrgrading.common import check_workspace, get_workspace_paths, Questions, Nia, StudentsData, get_prefix
 from qrgrading.pdf_tree import PDFTree
 from qrgrading.rubric import Rubric
 
@@ -47,6 +47,7 @@ class MainWindow(QMainWindow):
 
         self.current_exam = None
         self.detected = CodeSet()
+        self.changed = CodeSet()
 
         # Rubrics
         self.rubrics = []
@@ -60,9 +61,10 @@ class MainWindow(QMainWindow):
          self.dir_xls,
          self.dir_publish, _) = get_workspace_paths(os.getcwd())
 
-        self.xls_questions = Questions(self.dir_xls)
-        self.xls_nia = Nia(self.dir_xls)
-        self.xls_data = StudentsData(self.dir_xls)
+        self.prefix = get_prefix()
+        self.xls_questions = Questions(self.dir_xls + self.prefix + "questions.csv")
+        self.xls_nia = Nia(self.dir_xls + self.prefix + "nia.csv")
+        self.xls_data = StudentsData(self.dir_xls + self.prefix + "data.csv")
 
         self.central_widget = QWidget()
         self.main_layout = QVBoxLayout()
@@ -150,7 +152,7 @@ class MainWindow(QMainWindow):
         self.config.save()
 
     def load_detected(self):
-        self.detected.load(self.dir_data + "detected.csv")
+        self.detected.load(self.dir_data + self.prefix + "detected.csv")
 
     def load_tables(self):
 
@@ -346,10 +348,13 @@ class MainWindow(QMainWindow):
         return yellow
 
     def code_clicked(self, code):
+        self.changed.append(code)
+        self.changed.save(self.dir_data + self.prefix + "changed.csv")
         code.marked = not code.marked
         self.process_exam()
         self.update_scores_layout()
         self.update_pdf_tree_score()
+        self.detected.save(self.dir_data + self.prefix + "detected.csv")
 
 
 def main():
