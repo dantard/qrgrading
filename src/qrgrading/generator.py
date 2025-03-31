@@ -39,7 +39,8 @@ class Generator(Process):
                                     '-halt-on-error',
                                     '-output-directory', '{}'.format(self.dir_temp_generator),
                                     '-jobname', '{}'.format(self.uniqueid),
-                                    '\\newcommand{{\\uniqueid}}{{{:s}}}\\input{{{:s}}}"'.format(self.uniqueid, self.source_filename)],
+                                    '\\newcommand{{\\uniqueid}}{{{:s}}}\\input{{{:s}}}"'.format(self.uniqueid,
+                                                                                                self.source_filename.replace("\\", "/"))],
                                    stdout=subprocess.PIPE,
                                    universal_newlines=True,
                                    cwd=self.dir_source)
