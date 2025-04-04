@@ -98,6 +98,9 @@ Workspace 'qrgrading-250312' created successfully.
 Generally, the number is the date of the exam. If the scripts is called
 without the `-d` option, the current date will be used.
 
+Once created the workspace, the source directory will contain a file called `qrgrading.sty` which is the style file used to generate the exams and another file
+called `main.tex` which is a sample exam.
+
 ### Preparing the exam
 
 The following is preparing the exam. The source files must be in the `source` directory.
