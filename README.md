@@ -84,8 +84,6 @@ qrgrading-250212
 
 ```
 
-Inside the `source` directory, the `qrgrading.sty` file is also created together with a sample `main.tex` file.
-
 ### Creating a new workspace
 
 To create a new workspace, run the following command:
