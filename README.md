@@ -1,6 +1,8 @@
 # QRGRADER
 
-## Índice
+![images/logo.png](images/logo.png)
+
+## Index
 
 - [Prerequisites](#prerequisites)
 - [Instalación](#installation)

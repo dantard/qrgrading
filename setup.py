@@ -19,7 +19,7 @@ setup(
     author='Danilo Tardioli',
     author_email='dantard@unizar.es',
     description='A framwork for automatic grading of exams using QR codes',
-    long_description=open('README.md').read(),
+    # long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/dantard/qrgrading',
     classifiers=[
