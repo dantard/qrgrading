@@ -1,5 +1,11 @@
 # QRGRADER
 
+## Índice
+
+- [Prerequisites](#prerequisites)
+- [Instalación](#installation)
+- [Usage](#usage)
+
 QRGrader is a simple python script that allows you to grade
 multiple choice questions using QR codes. The script will generate a QR code for each question and the correct answer.
 Students can scan the QR code to check their answers. The script will also generate a summary of the results for each
