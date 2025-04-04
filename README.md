@@ -4,6 +4,8 @@
 
 - [Prerequisites](#prerequisites)
 - [Instalación](#installation)
+    - [Installation from PyPI](#installation-from-pypi)
+    - [Installation from source](#installation-from-source)
 - [Usage](#usage)
     - [Creating a new workspace](#creating-a-new-workspace)
     - [Preparing the exam](#preparing-the-exam)
