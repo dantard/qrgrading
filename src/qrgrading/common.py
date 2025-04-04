@@ -56,11 +56,17 @@ class Questions:
             return True
         return False
 
+    def get_text(self, question):
+        return self.questions.loc[question - 1, "BRIEF"]
+
     def get_value(self, question, answer):
         return self.questions.loc[question - 1, chr(answer + 64)]
 
     def get_type(self, question):
         return self.questions.loc[question - 1, "TYPE"]
+
+    def get_questions(self):
+        return self.questions.iloc[:, 0].tolist()
 
 
 class Generated(CodeSet):

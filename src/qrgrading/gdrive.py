@@ -1,7 +1,7 @@
 import os
 
 import gspread
-from gspread.utils import a1_to_rowcol
+from gspread.utils import a1_to_rowcol, ValueInputOption
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
@@ -155,7 +155,7 @@ class Sheets:
                         row[i] = get_narrowest_type(row[i])
 
             # print("Uploading sheet {}".format(title))
-            new_ws.update(data, corner)
+            new_ws.update(data, corner, value_input_option=ValueInputOption.user_entered)
 
     def download(self, args_sheet, args_yes=False):
         self._download(args_sheet, self.base_folder, args_yes)
