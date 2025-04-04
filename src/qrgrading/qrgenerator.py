@@ -102,10 +102,10 @@ def main():
         print("Creating generated.csv file...", end="")
         logs = sorted([x for x in listdir(dir_temp_generator) if x.endswith(".aux")])
 
-        w = open(dir_data + prefix + "generated.csv", "w")
+        w = open(dir_data + prefix + "generated.csv", "w", encoding='utf-8')
         for f in logs:
             pdf_page = 0
-            f = open(dir_temp_generator + os.sep + f, "r")
+            f = open(dir_temp_generator + os.sep + f, "r", encoding='utf-8')
 
             for line in f:
                 if line.startswith("\\zref@newlabel{QRPOSE"):
@@ -133,11 +133,11 @@ def main():
 
             any_log_will_do = dir_temp_generator + os.sep + logs[0]
 
-            with open(any_log_will_do, 'r') as file:
+            with open(any_log_will_do, "r", encoding='utf-8') as file:
                 log = file.read()
                 log = log.split(";;;")
                 questions_number = []
-                with open(dir_xls + prefix + "questions.csv".format(date), 'w') as filew:
+                with open(dir_xls + prefix + "questions.csv".format(date), "w", encoding='utf-8') as filew:
                     data = "ID\tTYPE\tA\tB\tC\tD\tBRIEF\n"
 
                     for i in range(1, len(log) - 1):

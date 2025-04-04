@@ -180,7 +180,7 @@ def main():
 
     if args.get("nia"):
         print("Creating NIA xls file")
-        with open(dir_xls + prefix + "nia.csv", "w") as f:
+        with open(dir_xls + prefix + "nia.csv", "w", encoding='utf-8') as f:
             f.write("EXAM\tNIA\n")
             for exam in exams:
                 nia = {0: 'Y', 1: 'Y', 2: 'Y', 3: 'Y', 4: 'Y', 5: 'Y'}
@@ -195,7 +195,7 @@ def main():
 
     if args.get("raw"):
         print("Creating RAW xls file")
-        with open(dir_xls + prefix + "raw.csv", "w") as f:
+        with open(dir_xls + prefix + "raw.csv", "w", encoding='utf-8') as f:
             # # Header
             # line = "DATE\tEXAM"
             # for qn in codes.get_questions():

@@ -55,7 +55,7 @@ class CodeSet:
         return sorted(list(set([x.answer for x in self.codes.values() if x.type == Code.TYPE_A])))
 
     def save(self, file_name):
-        with open(file_name, "w") as f:
+        with open(file_name, "w", encoding='utf-8') as f:
             for code in self.codes.values():
                 f.write(
                     code.data + ",{:.2f},{:.2f},{:.2f},{:.2f},{},{},{:d}\n".format(code.x, code.y, code.w, code.h, code.page, code.pdf_page, int(code.marked)))
@@ -64,7 +64,7 @@ class CodeSet:
         if not os.path.exists(file_name):
             return False
 
-        with open(file_name, "r") as f:
+        with open(file_name, "r", encoding='utf-8') as f:
             for line in f:
                 fields = line.strip().split(",")
                 data, x, y, w, h, page, pdf_page = fields[:7]

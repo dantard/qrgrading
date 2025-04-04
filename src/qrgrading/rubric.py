@@ -118,7 +118,7 @@ class Rubric(QListWidget):
         for b in self.filter_buttons(Button):
             buttons[b.get_name()] = b.get_config()
 
-        with open(self.schema_filename, "w") as f:
+        with open(self.schema_filename, "w", encoding='utf-8') as f:
             schema = {"buttons": buttons, "config": self.config}
             yaml.dump(schema, f, sort_keys=False)
 
@@ -244,14 +244,14 @@ class Rubric(QListWidget):
         return points
 
     def save_scores(self):
-        with open(self.scores_filename, 'w') as file:
+        with open(self.scores_filename, "w", encoding='utf-8') as file:
             yaml.dump(self.scores, file)
 
         self.save_xls()
 
     def save_xls(self):
 
-        with open(self.xls_filename, "w") as f:
+        with open(self.xls_filename, "w", encoding='utf-8') as f:
             row = "EXAM_ID"
             for button_name, _ in self.schema_dictionary.items():
                 row += "\t" + button_name

@@ -8,7 +8,7 @@ import importlib.resources
 
 
 def get_resource(name):
-    with importlib.resources.files("qrgrading").joinpath("latex" + os.sep + name).open("r") as f:
+    with importlib.resources.files("qrgrading").joinpath("latex" + os.sep + name).open("r", encoding='utf-8') as f:
         return f.read()
 
 
@@ -30,10 +30,10 @@ def main():
 
     dir_workspace, dir_data, dir_scanned, dir_generated, dir_xls, dir_publish, dir_source = directories
 
-    with open(dir_source + "main.tex", "w") as f:
+    with open(dir_source + "main.tex", "w", encoding='utf-8') as f:
         f.write(get_resource("main.tex"))
 
-    with open(dir_source + "qrgrading.sty", "w") as f:
+    with open(dir_source + "qrgrading.sty", "w", encoding='utf-8') as f:
         f.write(get_resource("qrgrading.sty"))
 
     print(f"Workspace qrgrading-{args['date']} created successfully.")

@@ -46,12 +46,12 @@ def main():
     # Create json file with client secrets
     makedir("config")
     if not os.path.exists("config" + os.sep + "client_secret.json"):
-        with open("config" + os.sep + "client_secret.json", "w") as f:
+        with open("config" + os.sep + "client_secret.json", "w", encoding='utf-8') as f:
             f.write(client_secrets_json)
 
     # Load config file if provided
     if args["file"] is not None:
-        with open(args["file"], "r") as f:
+        with open(args["file"], "r", encoding='utf-8') as f:
             file_args = yaml.safe_load(f)
             args.update(file_args)
 
@@ -88,7 +88,7 @@ def main():
         if args.get("list", None):
             files = gd.ls(folder_id)
 
-            with open("results" + os.sep + "xls" + os.sep + date + "_pdf.csv", "w") as f:
+            with open("results" + os.sep + "xls" + os.sep + date + "_pdf.csv", "w", encoding='utf-8') as f:
                 for file in files:
                     f.write(file[0].replace(".pdf", "") + "\t" + file[1] + "\n")
 

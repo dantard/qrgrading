@@ -380,7 +380,7 @@ def main():
         if not os.path.exists(filename):
             if args["create"]:
                 print("Creating schema", filename)
-                with open(filename, "w") as f:
+                with open(filename, "w", encoding='utf-8') as f:
                     f.write("{}\n")
             else:
                 print(f"ERROR: schema {filename} not found")

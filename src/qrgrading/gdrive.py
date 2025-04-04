@@ -146,7 +146,7 @@ class Sheets:
             if len(csv_file.split(".")) == 1:
                 csv_file += ".csv"
 
-            with open(csv_file, "r") as f:
+            with open(csv_file, "r", encoding='utf-8') as f:
                 data = f.readlines()
                 data = [line.strip().split(sep) for line in data]
 
@@ -176,7 +176,7 @@ class Sheets:
                 ok = input("File {} already exists. Overwrite (Y/n)? ".format(filename))
                 if ok.lower() != "y":
                     continue
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding='utf-8') as f:
                 print("Downloading sheet {}".format(sheet))
                 data = ws.get_all_values()
                 for line in data:
@@ -191,7 +191,7 @@ class Sheets:
             ws_data = ws.get_all_values()
 
             filename = args_folder + os.sep + str(args_diff + ".csv")
-            with open(filename, "r") as f:
+            with open(filename, "r", encoding='utf-8') as f:
                 data = f.readlines()
                 data = [line.strip().split(sep) for line in data]
 
