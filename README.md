@@ -5,6 +5,19 @@
 - [Prerequisites](#prerequisites)
 - [Instalación](#installation)
 - [Usage](#usage)
+    - [Creating a new workspace](#creating-a-new-workspace)
+    - [Preparing the exam](#preparing-the-exam)
+    - [Generating the exams](#generating-the-exams)
+    - [Grading the exams](#grading-the-exams)
+    - [Graphical user interface](#graphical-user-interface)
+    - [Annotating the exams](#annotating-the-exams)
+- [First Exam: Simulation](#first-exam-simulation)
+    - [First step: generate the simulated exam](#first-step-generate-the-simulated-exam)
+    - [Second step: simulate the exam](#second-step-simulate-the-exam)
+    - [Third step: grading the exams](#third-step-grading-the-exams)
+    - [Fourth step: check the results](#fourth-step-check-the-results)
+    - [Fifth step: annotate the exams](#fifth-step-annotate-the-exams)
+- [CSV files format details](#csv-files-format-details)
 
 QRGrader is a simple python script that allows you to grade
 multiple choice questions using QR codes. The script will generate a QR code for each question and the correct answer.
@@ -33,10 +46,22 @@ sudo apt install texlive-full
 
 ## Installation
 
-To install the script, run the following command:
+### Installation from PyPI
+
+To install the scripts from the Python Packages Index, run the following command:
 
 ```bash
-pip install qrgrading
+$ pip install qrgrading
+```
+
+### Installation from source
+
+In this case you need to have `git`already installed. To install the scripts from source, run the following command:
+
+```bash
+$ git clone https://github.com/dantard/qrgrading.git
+$ cd qrgrading
+$ pip install .
 ```
 
 ## Usage
@@ -45,14 +70,16 @@ All the script command must be executed inside the so-called qr workspace which 
 a directory tree called `qrgrading-DDDDDD` with the following structure:
 
 ```
+
 qrgrading-250212
 ├── data
 ├── source
 ├── generated
 ├── scanned
 ├── results
-    ├── xls
-    ├── pdf        
+├── xls
+├── pdf
+
 ```
 
 Inside the `source` directory, the `qrgrading.sty` file is also created together with a sample `main.tex` file.
@@ -62,7 +89,7 @@ Inside the `source` directory, the `qrgrading.sty` file is also created together
 To create a new workspace, run the following command:
 
 ```bash
-qrworkspace -d 250312
+$ qrworkspace -d 250312
 Workspace 'qrgrading-250312' created successfully.
 ```
 
@@ -144,7 +171,7 @@ different file and use the `\input` command inside the `question` environment.
 To generate the exams run the following command:
 
 ```bash
-qrgenerator -n 10
+$ qrgenerator -n 10
 ``` 
 
 Where `-n` is the number N of exams to generate.
@@ -159,7 +186,7 @@ The scanned files must be put afterwards in the `scanned` directory.
 The grading is carried out with the following command:
 
 ```bash
-qrscanner -se
+$ qrscanner -se
 ```
 
 This command will process the and generate a set of files in the `results` directory.
@@ -188,7 +215,7 @@ unmark the answer that has been marked by mistake.
 To use the graphical user interface, run the following command from within the workspace directory
 
 ```bash
-qrgrader
+$ qrgrader
 ```
 
 The graphical user interface will open as follows:
@@ -204,10 +231,81 @@ Once all the double marks have been removed, the exams can be annotated to show
 the correctly and incorrecly marked answers in the PDF itself that can be given to the students as a feedback. To do this, run the following command:
 
 ```bash
-qrscanner -a
+$ qrscanner -a
 ```
 
 This will annotate the PDF files in the `results/pdf` directory with the correct and incorrect answers.
+
+## First Exam: Simulation
+
+To check that everything is working correctly, you can run the whole process on a simulated exam.
+
+### First step: generate the simulated exam
+
+Since when the qrworkspace is created, the a bogus `main.tex` and `qrgrading.sty` files are created, you can run the following command to generate a simulated
+exam:
+
+```bash
+$ qrworkspace -d 250312
+$ Workspace 'qrgrading-250312' created successfully.
+```
+
+As commented earlier, the `qrworkspace` command will create a directory called `qrgrading-250312`.
+
+Change to the `qrgrading-250312` directory by running the following command:
+
+```bash
+$ cd qrgrading-250312
+```
+
+Then, you can run the following command to generate a ten bogus exams:
+
+```bash
+$ qrgenerator -n 10
+```
+
+This will generate 10 exams in the `generated` directory.
+
+### Second step: simulate the exam
+
+Now, it is possible to use the qrscanner application to randomly mark these exams and copy them into
+the scanned directory as if they were scanned exams. This can be done as follows:
+
+```bash
+$ qrscanner -S 10
+```
+
+This will create 10 randomly marked exams in the `scanned` directory.
+
+### Third step: grading the exams
+
+Now, you can run the grading process as follows:
+
+```bash
+$ qrscanner -se
+```
+
+This will process the scanned exams and generate the results in the `results` directory.
+
+### Fourth step: check the results
+
+Subsequently, you can run the graphical user interface to check the results:
+
+```bash
+$ qrgrader
+```
+
+With the interface you can unmark the hypothetical double marks.
+
+### Fifth step: annotate the exams
+
+Once done, you can annotate the exams with the correct and incorrect answers as follows:
+
+```bash
+$ qrscanner -a
+```
+
+and you are done!
 
 ### CSV files format details
 
@@ -220,7 +318,7 @@ DDDDDD NNN Q1A Q1B Q1C Q1D Q2A Q2B Q2C Q2D Q3A Q3B Q3C Q3D
 as for example:
 
 ```
-250319   1   0   0   1   0   1   0   0   0   1   0   0   0
+250319 1 0 0 1 0 1 0 0 0 1 0 0 0
 ```
 
 Where `DDDDDD` is the date of the exam, `NNN` is the number of the exam, and
@@ -231,13 +329,13 @@ otherwise `0`.
 The `nia.csv` file has the following format:
 
 ```
-DDDDDDNNN   NIA
+DDDDDDNNN NIA
 ```
 
 as for example:
 
 ```
-250319001   123456
+250319001 123456
 ```
 
 Where `DDDDDD` is the date of the exam, `NNN` is the number of the exam, and `NIA` is
@@ -247,15 +345,15 @@ the student ID. Notice that in this case the
 The `questions.csv` file has the following format:
 
 ```
-N TYPE   SA   SB   SC   SD BRIEF
+N TYPE SA SB SC SD BRIEF
 ```
 
 as for example:
 
 ``` 
-1    Q  0.5 -0.1 -0.1 -0.1 for_loop
-2    Q  0.5 -0.1 -0.1 -0.1 error_handling
-3    Q  0.5 -0.1 -0.1 -0.1 sintax_error
+1 Q 0.5 -0.1 -0.1 -0.1 for_loop
+2 Q 0.5 -0.1 -0.1 -0.1 error_handling
+3 Q 0.5 -0.1 -0.1 -0.1 sintax_error
 ```
 
 Where `N` is the question number, `TYPE` is the question type, `SA`, `SB`, `SC`, and `SD` are the scores for each
