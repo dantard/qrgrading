@@ -191,7 +191,7 @@ The scanned files must be put afterwards in the `scanned` directory.
 The grading is carried out with the following command:
 
 ```bash
-$ qrscanner -se
+$ qrscanner -p
 ```
 
 This command will process the and generate a set of files in the `results` directory.
@@ -287,7 +287,7 @@ This will create 10 randomly marked exams in the `scanned` directory.
 Now, you can run the grading process as follows:
 
 ```bash
-$ qrscanner -se
+$ qrscanner -p
 ```
 
 This will process the scanned exams and generate the results in the `results` directory.
