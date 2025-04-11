@@ -1,6 +1,7 @@
 import math
 import os
 import shutil
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -109,5 +110,7 @@ def makedir(path, clear=False):
         os.makedirs(path)
     except FileExistsError:
         if clear:
-            shutil.rmtree(path)
-            os.makedirs(path)
+            directory = Path(path)
+            for item in directory.glob('*'):
+                if item.is_file() or item.is_symlink():
+                    item.unlink()
