@@ -1,9 +1,10 @@
 # QRGRADER
 
-![images/logo.png](images/logo.png)
+<img src="images/logo.png" alt="drawing" width="300"/>
 
 ## Index
 
+- [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
 - [Instalación](#installation)
     - [Installation from PyPI](#installation-from-pypi)
@@ -22,6 +23,20 @@
     - [Fourth step: check the results](#fourth-step-check-the-results)
     - [Fifth step: annotate the exams](#fifth-step-annotate-the-exams)
 - [CSV files format details](#csv-files-format-details)
+
+## Introduction
+
+QRGrader is a set of scripts that allows you to generate and grade multiple choice exams using QR codes. The script will generate a QR code for each question
+and the correct answer. Students can scan the QR code to check their answers. The script will also generate a summary of the results for each question.
+
+This README file is a guide to use the scripts. The scripts are designed to be used in a specific order, so it is important to follow the instructions
+carefully.
+
+In the following sections, we will explain how to install and use the scripts, how to generate the exams, how to grade the exams, and how to annotate the exams.
+
+You can also jump to the [First Exam: Simulation](#first-exam-simulation) which is designed to verify that everything is functioning properly. We will simulate
+an exam scenario to ensure the scripts perform as expected. Running this test beforehand helps confirm that everything is working correctly before deploying the
+scripts in a real exam setting.
 
 QRGrader is a simple python script that allows you to grade
 multiple choice questions using QR codes. The script will generate a QR code for each question and the correct answer.
@@ -67,20 +82,6 @@ $ git clone https://github.com/dantard/qrgrading.git
 $ cd qrgrading
 $ pip install .
 ```
-
-## Introduction
-
-QRGrader is a set of scripts that allows you to generate and grade multiple choice exams using QR codes. The script will generate a QR code for each question
-and the correct answer. Students can scan the QR code to check their answers. The script will also generate a summary of the results for each question.
-
-This README file is a guide to use the scripts. The scripts are designed to be used in a specific order, so it is important to follow the instructions
-carefully.
-
-In the following sections, we will explain how to use the scripts, how to generate the exams, how to grade the exams, and how to annotate the exams.
-
-You can also jump to the [First Exam: Simulation](#first-exam-simulation) which is designed to verify that everything is functioning properly. We will simulate
-an exam scenario to ensure the scripts perform as expected. Running this test beforehand helps confirm that everything is working correctly before deploying the
-scripts in a real exam setting.
 
 ## Usage
 
@@ -193,7 +194,6 @@ To generate the exams run the following command:
 
 ```bash
 $ qrgenerator -n 10
-Workspace: /tmp/__qgrading__250327/generator/
 ** Starting parallelized generation (using 4 threads)
 Creating exam 250327001 (0 ready)
 Creating exam 250327002 (0 ready)
@@ -219,6 +219,13 @@ and `NNN` is the number of the exam from `001` to `NNN`, in this case `010`.
 They will have the following aspect (naturally, the content can be personalized):
 
 ![images/img_3.png](images/img_3.png)
+
+### Marking the exams
+
+The exams must be printed in a normal printer. The students must mark the answers with a pen or a pencil over the QR code. The system is robust and basically
+any mark will do.
+
+The only thing that must be taken into account is that the QR code must be marked with a pen or a pencil and the marks must be inside the QR code.
 
 ### Grading the exams
 
@@ -362,7 +369,7 @@ $ qrscanner -a
 
 and you are done!
 
-### CSV files format details
+## CSV files format details
 
 The `DDDDDD_raw.csv` file has the following format (the space are \t  (tabs) in the file):
 
