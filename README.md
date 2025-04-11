@@ -68,6 +68,20 @@ $ cd qrgrading
 $ pip install .
 ```
 
+## Introduction
+
+QRGrader is a set of scripts that allows you to generate and grade multiple choice exams using QR codes. The script will generate a QR code for each question
+and the correct answer. Students can scan the QR code to check their answers. The script will also generate a summary of the results for each question.
+
+This README file is a guide to use the scripts. The scripts are designed to be used in a specific order, so it is important to follow the instructions
+carefully.
+
+In the following sections, we will explain how to use the scripts, how to generate the exams, how to grade the exams, and how to annotate the exams.
+
+You can also jump to the [First Exam: Simulation](#first-exam-simulation) which is designed to verify that everything is functioning properly. We will simulate
+an exam scenario to ensure the scripts perform as expected. Running this test beforehand helps confirm that everything is working correctly before deploying the
+scripts in a real exam setting.
+
 ## Usage
 
 All the script command must be executed inside the so-called qr workspace which is
@@ -88,7 +102,7 @@ qrgrading-250212
 
 ### Creating a new workspace
 
-To create a new workspace, run the following command:
+To create a new workspace, run the following command in a terminal:
 
 ```bash
 $ qrworkspace -d 250312
@@ -99,7 +113,7 @@ Generally, the number is the date of the exam. If the scripts is called
 without the `-d` option, the current date will be used.
 
 Once created the workspace, the source directory will contain a file called `qrgrading.sty` which is the style file used to generate the exams and another file
-called `main.tex` which is a sample exam.
+called `main.tex` which is a sample exam that can be personalized according to the needs of the exam.
 
 ### Preparing the exam
 
@@ -146,6 +160,8 @@ The exam has the following structure:
 \end{document} 
 ```
 
+For the moment it is only possible to have four possible answers.
+
 The main file must be called `main.tex`.
 
 The exam environment has the following options:
@@ -177,12 +193,32 @@ To generate the exams run the following command:
 
 ```bash
 $ qrgenerator -n 10
+Workspace: /tmp/__qgrading__250327/generator/
+** Starting parallelized generation (using 4 threads)
+Creating exam 250327001 (0 ready)
+Creating exam 250327002 (0 ready)
+Creating exam 250327003 (0 ready)
+Creating exam 250327004 (0 ready)
+Creating exam 250327005 (1 ready)
+Creating exam 250327006 (2 ready)
+Creating exam 250327007 (3 ready)
+Creating exam 250327008 (4 ready)
+Creating exam 250327009 (5 ready)
+Creating exam 250327010 (6 ready)
+Done (10 exams generated).
+Creating generated.csv file...Done.
+Creating questions.csv file...Done.
 ``` 
 
-Where `-n` is the number N of exams to generate.
-In this example the `qrgenerator` will generate 10 exams in the `generated` directory. Both the order of the questions and the answers will be different for
+Where `-n` is the number `N` of exams to generate.
+In this example the `qrgenerator` will generate 10 exams in the `generated` directory in PDF format. Both the order of the questions and the answers will be
+different for
 each exam. The file name will have the format `DDDDDDNNN.pdf` where `DDDDDD` is the date of the exam
 and `NNN` is the number of the exam from `001` to `NNN`, in this case `010`.
+
+They will have the following aspect (naturally, the content can be personalized):
+
+![images/img_3.png](images/img_3.png)
 
 ### Grading the exams
 
@@ -192,6 +228,17 @@ The grading is carried out with the following command:
 
 ```bash
 $ qrscanner -p
+qrscanner -p 
+Processing file 250327001.pdf
+Processing file 250327002.pdf
+Processed /home/danilo/work/qrgrading/qrgrading-250327/scanned/250327001.pdf page 1 
+Processed /home/danilo/work/qrgrading/qrgrading-250327/scanned/250327002.pdf page 1 
+Processed /home/danilo/work/qrgrading/qrgrading-250327/scanned/250327001.pdf page 0 
+Processed /home/danilo/work/qrgrading/qrgrading-250327/scanned/250327002.pdf page 0 
+Reconstructing exams
+Creating NIA xls file
+Creating RAW xls file
+All done :)
 ```
 
 This command will process the and generate a set of files in the `results` directory.
@@ -239,7 +286,10 @@ the correctly and incorrecly marked answers in the PDF itself that can be given 
 $ qrscanner -a
 ```
 
-This will annotate the PDF files in the `results/pdf` directory with the correct and incorrect answers.
+This will annotate the PDF files in the `results/pdf` directory with the correct and incorrect answers. The questions will be marked in green and red,
+respectively as follows:
+
+![images/img_4.png](images/img_4.png)
 
 ## First Exam: Simulation
 
